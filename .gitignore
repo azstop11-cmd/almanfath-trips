@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+almanfath_trips.db
+*.sqlite
+backups/
+!initial_seed.db
+.env
+*.log
+test_pipe.txt
+test_endpoints.py
+write_frontend.py
+apply_*.py
+fix_*.py

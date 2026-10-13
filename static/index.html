@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام كشف العملاء في الرحلات – المنفذ المثالي</title>
+  <link rel="icon" type="image/jpeg" href="/static/images/logo_vertical_white.jpg">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              200: '#99f6e4',
+              300: '#5eead4',
+              400: '#2dd4bf',
+              500: '#009ca6',
+              600: '#00828a',
+              700: '#0f766e',
+              800: '#115e59',
+              900: '#134e4a',
+            },
+            navy: {
+              50: '#f0f4f8',
+              100: '#d9e2ec',
+              200: '#bcccdc',
+              300: '#9fb3c8',
+              400: '#829ab1',
+              500: '#627d98',
+              600: '#486581',
+              700: '#334e68',
+              800: '#0f4c81',
+              900: '#0a3359',
+              950: '#061f36',
+            }
+          },
+          fontFamily: {
+            sans: ['Tajawal', 'Cairo', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- PDF & Excel Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="/static/styles.css?v=20261007_sync_perfect_v7">
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+  <!-- ==================== 1. LOGIN VIEW ==================== -->
+  <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center p-4 islamic-pattern">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 fade-in">
+      <div class="bg-brand-header p-8 text-center text-white relative">
+        <div class="w-24 h-24 mx-auto mb-3 bg-white rounded-2xl p-2 shadow-lg flex items-center justify-center">
+          <img src="/static/images/logo_vertical_white.jpg" alt="شعار المنفذ المثالي" class="h-full object-contain">
+        </div>
+        <h1 class="text-2xl font-black mb-1">المنفذ المثالي</h1>
+        <p class="text-xs text-brand-100 font-medium tracking-wide">لتنظيم الرحلات السياحية</p>
+      </div>
+
+      <div class="p-8">
+        <div class="text-center mb-6">
+          <h2 class="text-xl font-bold text-slate-800">نظام كشف العملاء في الرحلات</h2>
+          <p class="text-xs text-slate-500 mt-1">تسجيل دخول المشرف المسؤول</p>
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم المستخدم</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400">
+                <i class="fa-solid fa-user"></i>
+              </span>
+              <input type="text" id="login-username" value="admin" required
+                class="w-full pr-10 pl-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none transition"
+                placeholder="أدخل اسم المستخدم">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400">
+                <i class="fa-solid fa-lock"></i>
+              </span>
+              <input type="password" id="login-password" value="123456" required
+                class="w-full pr-10 pl-10 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none transition"
+                placeholder="أدخل كلمة المرور">
+              <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-slate-600">
+                <i id="password-eye-icon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-1">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-600">
+              <input type="checkbox" id="remember-me" checked class="rounded text-brand-600 focus:ring-brand-500">
+              <span>تذكر تسجيل الدخول</span>
+            </label>
+            <span class="text-brand-600 font-semibold cursor-pointer hover:underline" onclick="showToast('يمكنك الدخول بكلمة المرور 123456', 'info')">مساعدة المشرف</span>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3 px-4 bg-gradient-to-r from-brand-600 to-navy-800 hover:from-brand-700 hover:to-navy-900 text-white font-bold rounded-xl shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition flex items-center justify-center gap-2">
+            <span>تسجيل الدخول</span>
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-5 border-t border-slate-100">
+          <p class="text-xs text-center text-slate-400 mb-2 font-medium">تسجيل سريع للتجربة:</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="quickLogin('admin')" class="py-1.5 px-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 text-center">
+              مشرف عام
+            </button>
+            <button onclick="quickLogin('shaqra')" class="py-1.5 px-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 text-center">
+              مشرف شقراء
+            </button>
+            <button onclick="quickLogin('dawadmi')" class="py-1.5 px-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 text-center">
+              مشرف الدوادمي
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. MAIN APPLICATION SHELL ==================== -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-col">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="no-print sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          
+          <!-- Brand & System Logo -->
+          <div class="flex items-center gap-3">
+            <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none">
+              <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('dashboard')">
+              <img src="/static/images/logo_horizontal_white.jpg" alt="المنفذ المثالي" class="h-10 w-auto object-contain hidden sm:block">
+              <img src="/static/images/logo_vertical_white.jpg" alt="المنفذ المثالي" class="h-9 w-auto object-contain sm:hidden">
+              <div class="border-r border-slate-200 pr-3 mr-1">
+                <h1 class="text-sm font-black text-navy-800 leading-tight">نظام كشف العملاء في الرحلات</h1>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trip Selector Dropdown & Quick Actions -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+              <i class="fa-solid fa-bus text-brand-600 text-sm"></i>
+              <span class="text-xs font-bold text-slate-600">الرحلة الحالية:</span>
+              <select id="global-trip-select" onchange="onGlobalTripChange(this.value)" class="bg-transparent text-xs font-bold text-navy-800 focus:outline-none cursor-pointer max-w-[200px] truncate">
+              </select>
+            </div>
+
+            <button onclick="navigate('bus-supervisor')" title="شاشة مشرف الباص للمتابعة والتعديل المباشر"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+              <i class="fa-solid fa-bus-simple"></i>
+              <span>مشرف الباص</span>
+            </button>
+
+            <button onclick="openCurrentTripManifest()" title="عرض كشف المشرف الرسمي للرحلة الحالية"
+              class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 rounded-xl text-xs font-bold transition">
+              <i class="fa-solid fa-file-signature"></i>
+              <span>كشف المشرف</span>
+            </button>
+
+            <button onclick="downloadTripVCF()" title="حفظ جميع عملاء الرحلة في جهات اتصال الجوال بضغطة زر"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+              <i class="fa-solid fa-address-book"></i>
+              <span class="hidden sm:inline">حفظ بالجوال (VCF)</span>
+            </button>
+
+            <!-- Real-Time Sync Indicator -->
+            <div id="live-sync-indicator" title="حالة التزامن الفوري مع المستخدمين الآخرين"
+              class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-xl text-xs font-bold shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="sync-status-text">تزامن فوري متصل</span>
+            </div>
+
+            <div class="flex items-center gap-2 border-r border-slate-200 pr-2 mr-1">
+              <div class="hidden lg:block text-left">
+                <p id="user-display-name" class="text-xs font-bold text-slate-800">المشرف المسؤول</p>
+              </div>
+              <button onclick="handleLogout()" title="تسجيل الخروج" class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
+                <i class="fa-solid fa-right-from-bracket"></i>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </header>
+
+    <!-- BODY CONTAINER WITH SIDEBAR & MAIN VIEW -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex gap-6">
+
+      <!-- SIDEBAR -->
+      <aside id="app-sidebar" class="no-print fixed lg:static inset-y-0 right-0 z-50 w-64 bg-white lg:bg-transparent lg:border-0 border-l border-slate-200 shadow-xl lg:shadow-none p-4 lg:p-0 transform translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col justify-between shrink-0">
+        
+        <div class="flex items-center justify-between pb-4 mb-3 border-b border-slate-200 lg:hidden">
+          <div class="flex items-center gap-2">
+            <img src="/static/images/logo_vertical_white.jpg" alt="المنفذ المثالي" class="h-8">
+            <span class="text-xs font-bold text-navy-800">القائمة الرئيسية</span>
+          </div>
+          <button onclick="toggleMobileSidebar()" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <nav class="space-y-1.5">
+          <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn active flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-chart-pie w-5 text-center text-brand-600"></i>
+            <span>لوحة التحكم الرئيسية</span>
+          </button>
+
+          <button onclick="navigate('trips')" id="nav-trips" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-route w-5 text-center text-brand-600"></i>
+            <span>إدارة الرحلات</span>
+          </button>
+
+          <button onclick="navigate('archive')" id="nav-archive" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-box-archive w-5 text-center text-amber-600"></i>
+            <span>أرشيف الرحلات</span>
+            <span id="archive-count-badge" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full mr-auto font-bold hidden">0</span>
+          </button>
+
+          <button onclick="navigate('customers')" id="nav-customers" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-users w-5 text-center text-brand-600"></i>
+            <span>قاعدة بيانات العملاء</span>
+          </button>
+
+          <button onclick="navigate('bus-supervisor')" id="nav-bus-supervisor" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-bus-simple w-5 text-center text-teal-600"></i>
+            <span>مشرف الباص</span>
+            <span class="bg-teal-100 text-teal-800 text-[10px] px-2 py-0.5 rounded-full mr-auto font-bold">مباشر</span>
+          </button>
+
+          <button onclick="navigate('import')" id="nav-import" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-file-excel w-5 text-center text-emerald-600"></i>
+            <span>إضافة رحلة ورفع Excel</span>
+          </button>
+
+          <button onclick="navigate('manifest')" id="nav-manifest" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-clipboard-list w-5 text-center text-navy-800"></i>
+            <span>كشف المشرف الرسمي</span>
+          </button>
+
+          <button onclick="navigate('cards')" id="nav-cards" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-id-card w-5 text-center text-brand-600"></i>
+            <span>بطاقات العملاء</span>
+          </button>
+
+          <button onclick="navigate('reports')" id="nav-reports" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-chart-line w-5 text-center text-brand-600"></i>
+            <span>التقارير والإحصائيات</span>
+          </button>
+
+          <button onclick="navigate('settings')" id="nav-settings" class="nav-btn flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-sliders w-5 text-center text-slate-600"></i>
+            <span>الإعدادات والنسخ الاحتياطي</span>
+          </button>
+        </nav>
+
+        <div class="mt-6 pt-4 border-t border-slate-200 bg-gradient-to-br from-brand-50 to-navy-50 p-3.5 rounded-2xl border border-brand-100 text-center">
+          <p class="text-xs font-bold text-navy-900">المنفذ المثالي</p>
+          <p class="text-[11px] text-slate-500">لتنظيم الرحلات السياحية</p>
+        </div>
+
+      </aside>
+
+      <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/40 z-40 lg:hidden hidden"></div>
+
+      <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+      <main id="main-content" class="flex-1 w-full overflow-hidden">
+        
+        <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+        <section id="view-dashboard" class="space-y-6 fade-in">
+          
+          <div class="bg-brand-header rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="relative z-10">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-bold mb-2">
+                <i class="fa-solid fa-certificate text-brand-300"></i>
+                نظام إدارة وتسجيل ركاب الرحلات
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-black">أهلاً بك، <span id="dash-welcome-user">مشرف الرحلات</span></h2>
+            </div>
+
+            <div class="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3">
+              <button onclick="navigate('import')" class="px-4 py-2.5 bg-white text-navy-900 hover:bg-brand-50 font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+                <i class="fa-solid fa-plus text-brand-600"></i>
+                <span>إضافة رحلة / استيراد</span>
+              </button>
+              <button onclick="openCurrentTripManifest()" class="px-4 py-2.5 bg-brand-500 hover:bg-brand-400 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i>
+                <span>طباعة الكشف</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Statistics Metric Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-1">إجمالي العملاء</p>
+                <h3 id="stat-total-customers" class="text-2xl font-black text-slate-900">0</h3>
+                <span class="text-[11px] text-brand-600 font-bold">جميع الرحلات</span>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-1">ركاب شقراء</p>
+                <h3 id="stat-shaqra-customers" class="text-2xl font-black text-teal-700">0</h3>
+                <span id="stat-shaqra-pct" class="text-[11px] text-teal-600 font-bold">0% من الإجمالي</span>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-location-dot"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-1">ركاب الدوادمي</p>
+                <h3 id="stat-dawadmi-customers" class="text-2xl font-black text-navy-800">0</h3>
+                <span id="stat-dawadmi-pct" class="text-[11px] text-navy-600 font-bold">0% من الإجمالي</span>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-navy-50 text-navy-800 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-map-pin"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-1">عدد الرحلات</p>
+                <h3 id="stat-total-trips" class="text-2xl font-black text-slate-900">0</h3>
+                <span id="stat-trips-subtext" class="text-[11px] text-brand-600 font-bold">رحلات نشطة ومتاحة</span>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-route"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between col-span-2 lg:col-span-1">
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-1">المؤكدين والجاهزية</p>
+                <h3 id="stat-confirmed-customers" class="text-2xl font-black text-emerald-600">0</h3>
+                <span id="stat-noshow-customers" class="text-[11px] text-rose-600 font-bold">0 عدم حضور</span>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Featured Active Trip Box -->
+          <div id="dash-active-trip-card" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+          </div>
+
+          <!-- Recent Trips List Table -->
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-brand-600"></i>
+                <h3 class="text-base font-bold text-slate-800">قائمة الرحلات المسجلة</h3>
+              </div>
+              <button onclick="navigate('trips')" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                <span>عرض الكل</span>
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-right custom-table">
+                <thead>
+                  <tr>
+                    <th>اسم الرحلة</th>
+                    <th>التاريخ الهجري</th>
+                    <th>الفندق</th>
+                    <th>إجمالي الركاب</th>
+                    <th>ركاب شقراء</th>
+                    <th>ركاب الدوادمي</th>
+                    <th>حالة الرحلة</th>
+                    <th class="text-center">الإجراءات والطباعة</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-trips-tbody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 2: TRIPS MANAGEMENT ==================== -->
+        <section id="view-trips" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800">إدارة الرحلات</h2>
+              <p class="text-xs text-slate-500 mt-0.5">الرحلات النشطة والجارية في النظام</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="navigate('archive')" class="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs sm:text-sm border border-amber-200 transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-box-archive text-amber-600"></i>
+                <span>أرشيف الرحلات</span>
+                <span id="trips-archived-count-badge" class="bg-amber-200 text-amber-900 text-[10px] px-2 py-0.5 rounded-full font-black">0</span>
+              </button>
+              <button onclick="openNewTripModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>إضافة رحلة جديدة</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="trips-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW: TRIP ARCHIVE ==================== -->
+        <section id="view-archive" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="p-1.5 bg-amber-100 text-amber-700 rounded-lg text-sm">
+                  <i class="fa-solid fa-box-archive"></i>
+                </span>
+                <h2 class="text-xl font-black text-slate-800">أرشيف الرحلات</h2>
+              </div>
+              <p class="text-xs text-slate-500">جميع الرحلات السابقة والمكتملة المحفوظة في الأرشيف للرجوع إليها في أي وقت</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 text-xs">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="archive-search-input" oninput="renderArchiveGrid()"
+                  placeholder="ابحث في أرشيف الرحلات..."
+                  class="pr-8 pl-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 font-bold">
+              </div>
+              <button onclick="navigate('trips')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-right"></i>
+                <span>العودة للرحلات النشطة</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="archive-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 3: CUSTOMERS DATABASE ==================== -->
+        <section id="view-customers" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-xl font-bold text-slate-800">قاعدة بيانات العملاء والركاب</h2>
+                <p class="text-xs text-slate-500 mt-0.5">اضغط على أي اسم لعرض وطباعة بطاقة العميل مباشرة</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="openAddCustomerModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
+                  <i class="fa-solid fa-user-plus"></i>
+                  <span>تسجيل عميل جديد</span>
+                </button>
+                <button onclick="exportCurrentFilteredExcel()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-file-excel"></i>
+                  <span>تصدير إكسل</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Instant Search Bar -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              
+              <div class="relative sm:col-span-2">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="cust-search-input" oninput="debounceFilterCustomers()"
+                  placeholder="ابحث بالاسم، الجوال، الهوية، رقم المقعد، الفندق..."
+                  class="w-full pr-10 pl-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none transition">
+              </div>
+
+              <div>
+                <select id="cust-filter-trip" onchange="filterCustomers()"
+                  class="w-full py-2 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <option value="">جميع الرحلات</option>
+                </select>
+              </div>
+
+              <div>
+                <select id="cust-filter-pickup" onchange="filterCustomers()"
+                  class="w-full py-2 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <option value="الكل">نقطة الصعود: الكل</option>
+                  <option value="شقراء">ركاب شقراء فقط</option>
+                  <option value="الدوادمي">ركاب الدوادمي فقط</option>
+                </select>
+              </div>
+
+            </div>
+
+            <!-- Status Pills Filter -->
+            <div class="flex flex-wrap items-center gap-2 pt-2 text-xs">
+              <span class="text-slate-500 font-bold ml-1">حالة العميل:</span>
+              <button onclick="setStatusFilter('الكل')" id="filter-status-all" class="status-filter-btn active px-3 py-1 rounded-full font-bold bg-slate-800 text-white transition">الكل (<span id="count-all">0</span>)</button>
+              <button onclick="setStatusFilter('مؤكد')" id="filter-status-confirmed" class="status-filter-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-emerald-700 hover:bg-emerald-50 transition">مؤكد (<span id="count-confirmed">0</span>)</button>
+              <button onclick="setStatusFilter('مسجل')" id="filter-status-registered" class="status-filter-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-amber-700 hover:bg-amber-50 transition">مسجل (<span id="count-registered">0</span>)</button>
+              <button onclick="setStatusFilter('عدم الحضور')" id="filter-status-noshow" class="status-filter-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-rose-700 hover:bg-rose-50 transition flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>عدم الحضور (<span id="count-noshow">0</span>)</span>
+              </button>
+              <button onclick="setStatusFilter('ملغي')" id="filter-status-cancelled" class="status-filter-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">ملغي (<span id="count-cancelled">0</span>)</button>
+            </div>
+
+          </div>
+
+          <!-- Customers Table Card -->
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-right custom-table">
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>اسم العميل</th>
+                    <th>رقم الهوية</th>
+                    <th>رقم الجوال</th>
+                    <th>نقطة الصعود</th>
+                    <th>المقعد</th>
+                    <th>الفندق / الغرفة</th>
+                    <th>الرحلة</th>
+                    <th>حالة الحضور</th>
+                    <th>المبلغ المتبقي</th>
+                    <th class="text-center">إجراءات المتابعة</th>
+                  </tr>
+                </thead>
+                <tbody id="customers-tbody">
+                </tbody>
+              </table>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+              <span id="cust-table-counter">إجمالي المعروض: 0 عميل</span>
+              <div class="flex items-center gap-2">
+                <button onclick="printCustomerTable()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-bold flex items-center gap-1">
+                  <i class="fa-solid fa-print"></i>
+                  <span>طباعة الجدول</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW: BUS SUPERVISOR (مشرف الباص) ==================== -->
+        <section id="view-bus-supervisor" class="space-y-6 hidden fade-in">
+          
+          <!-- Top Card Banner -->
+          <div class="bg-gradient-to-r from-teal-800 via-teal-700 to-navy-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-bold mb-2">
+                <i class="fa-solid fa-bus-simple text-teal-300"></i>
+                <span>شاشة مشرف الباص المباشرة</span>
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-black">إدارة وتفقد ركاب الحافلة</h2>
+              <p class="text-xs sm:text-sm text-teal-100 mt-1">
+                تعديل المقاعد من 1 إلى 50 أو يدوي، تحديث الحضور بضغطة زر، وتواصل سريع بالواتساب والاتصال.
+              </p>
+            </div>
+
+            <!-- Quick Stats in Banner -->
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              <div class="bg-white/10 backdrop-blur-sm px-3.5 py-2 rounded-2xl border border-white/20 text-center min-w-[80px]">
+                <span class="text-[11px] text-teal-200 block font-bold">ركاب الحافلة</span>
+                <span id="bus-stat-total" class="text-lg sm:text-xl font-black">0</span>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm px-3.5 py-2 rounded-2xl border border-white/20 text-center min-w-[80px]">
+                <span class="text-[11px] text-emerald-200 block font-bold">مؤكد الحضور</span>
+                <span id="bus-stat-confirmed" class="text-lg sm:text-xl font-black text-emerald-300">0</span>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm px-3.5 py-2 rounded-2xl border border-white/20 text-center min-w-[80px]">
+                <span class="text-[11px] text-rose-200 block font-bold">عدم الحضور</span>
+                <span id="bus-stat-noshow" class="text-lg sm:text-xl font-black text-rose-300">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls & Filters -->
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <!-- Search -->
+              <div class="relative sm:col-span-2">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="bus-search-input" oninput="filterBusSupervisor()"
+                  placeholder="ابحث باسم الراكب أو رقم المقعد أو الفندق..."
+                  class="w-full pr-10 pl-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition font-bold">
+              </div>
+
+              <!-- Trip Filter -->
+              <div>
+                <select id="bus-filter-trip" onchange="onBusTripChange(this.value)"
+                  class="w-full py-2.5 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold text-navy-900">
+                </select>
+              </div>
+
+              <!-- Pickup Point Filter -->
+              <div>
+                <select id="bus-filter-pickup" onchange="filterBusSupervisor()"
+                  class="w-full py-2.5 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold">
+                  <option value="الكل">نقطة الصعود: الكل</option>
+                  <option value="شقراء">ركاب شقراء</option>
+                  <option value="الدوادمي">ركاب الدوادمي</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Quick Seat Filter & Status Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-slate-500 font-bold ml-1">تصفية سريعة:</span>
+                <button onclick="setBusStatusFilter('الكل')" id="bus-filter-all" class="bus-status-btn active px-3 py-1 rounded-full font-bold bg-slate-800 text-white transition">الكل (<span id="bus-count-all">0</span>)</button>
+                <button onclick="setBusStatusFilter('مؤكد')" id="bus-filter-confirmed" class="bus-status-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-emerald-700 hover:bg-emerald-50 transition">حاضر / مؤكد (<span id="bus-count-confirmed">0</span>)</button>
+                <button onclick="setBusStatusFilter('مسجل')" id="bus-filter-registered" class="bus-status-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-amber-700 hover:bg-amber-50 transition">مسجل (<span id="bus-count-registered">0</span>)</button>
+                <button onclick="setBusStatusFilter('عدم الحضور')" id="bus-filter-noshow" class="bus-status-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-rose-700 hover:bg-rose-50 transition">عدم الحضور (<span id="bus-count-noshow">0</span>)</button>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button onclick="printBusSupervisorList()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition flex items-center gap-1">
+                  <i class="fa-solid fa-print"></i>
+                  <span>طباعة قائمة الباص</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bus Supervisor Dedicated Table -->
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-user text-teal-700 text-base"></i>
+                <h3 class="text-sm sm:text-base font-black text-slate-800">قائمة ركاب الحافلة</h3>
+              </div>
+              <span id="bus-table-counter" class="text-xs bg-teal-100 text-teal-900 font-bold px-3 py-1 rounded-full">0 راكب</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-right custom-table">
+                <thead>
+                  <tr class="bg-slate-100/75">
+                    <th class="w-10 text-center">م</th>
+                    <th>اسم الراكب</th>
+                    <th class="w-44">رقم المقعد (1-50 / يدوي)</th>
+                    <th>اسم الفندق</th>
+                    <th class="w-36">حالة الحضور</th>
+                    <th class="w-32">المبلغ المتبقي</th>
+                    <th class="text-center w-36">تواصل وإجراء</th>
+                  </tr>
+                </thead>
+                <tbody id="bus-supervisor-tbody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 4: ADD TRIP & EXCEL IMPORT ==================== -->
+        <section id="view-import" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div class="border-b border-slate-100 pb-4 mb-6">
+              <h2 class="text-xl font-bold text-slate-800">إضافة رحلة واستيراد بيانات العملاء</h2>
+              <p class="text-xs text-slate-500 mt-1">يدعم رفع ملفات Excel (XLSX, XLS) و CSV مع مطابقة الأعمدة الذكية والمعاينة قبل الحفظ</p>
+            </div>
+
+            <!-- Wizard Tabs -->
+            <div class="flex border-b border-slate-200 mb-6">
+              <button onclick="switchImportTab('excel')" id="tab-btn-excel" class="py-3 px-6 text-sm font-bold text-brand-600 border-b-2 border-brand-600 flex items-center gap-2">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>استيراد ذكي من ملف Excel / CSV</span>
+              </button>
+              <button onclick="switchImportTab('manual')" id="tab-btn-manual" class="py-3 px-6 text-sm font-bold text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-keyboard"></i>
+                <span>إدخال يدوي جماعي لأكثر من 50+ راكب</span>
+              </button>
+            </div>
+
+            <!-- TAB 1: EXCEL WIZARD -->
+            <div id="import-tab-excel" class="space-y-6">
+              
+              <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">1</span>
+                  تحديد الرحلة المستهدفة للاستيراد
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">اختر رحلة حالية أو أنشئ جديدة:</label>
+                    <select id="import-target-trip" onchange="onImportTripSelectChange(this.value)"
+                      class="w-full py-2.5 px-3 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </select>
+                  </div>
+                  <div class="flex items-end">
+                    <button onclick="openNewTripModal()" class="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-2">
+                      <i class="fa-solid fa-plus"></i>
+                      <span>إنشاء رحلة جديدة أولاً</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">2</span>
+                  رفع ملف بيانات العملاء (Excel / CSV)
+                </h3>
+
+                <div id="drop-zone" onclick="document.getElementById('excel-file-input').click()"
+                  class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-white hover:bg-brand-50/50 rounded-2xl p-8 text-center cursor-pointer transition">
+                  <input type="file" id="excel-file-input" onchange="handleExcelFileUpload(event)" accept=".xlsx, .xls, .csv" class="hidden">
+                  <div class="w-16 h-16 mx-auto mb-3 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-3xl">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                  </div>
+                  <h4 class="text-sm font-bold text-slate-800 mb-1">اسحب وأفلت ملف Excel هنا أو اضغط للاختيار</h4>
+                  <p class="text-xs text-slate-500">يدعم ملفات بصيغة (.xlsx, .xls, .csv)</p>
+                  <div id="uploading-indicator" class="hidden mt-3 text-xs text-brand-600 font-bold animate-pulse">
+                    <i class="fa-solid fa-spinner fa-spin"></i> جاري قراءة الملف وتحليل الأعمدة...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3: Column Mapping & Preview -->
+              <div id="mapping-and-preview-section" class="hidden space-y-6">
+                
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">3</span>
+                      مطابقة أعمدة Excel مع حقول النظام
+                    </h3>
+                    <span class="text-xs bg-brand-100 text-brand-800 px-3 py-1 rounded-full font-bold" id="detected-rows-badge">تم العثور على 0 سجل</span>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">اسم العميل <span class="text-red-500">*</span></label>
+                      <select id="map-full-name" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">رقم الجوال <span class="text-red-500">*</span></label>
+                      <select id="map-phone" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">نقطة الصعود (شقراء / الدوادمي)</label>
+                      <select id="map-pickup-point" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">رقم الهوية الوطنية</label>
+                      <select id="map-national-id" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">رقم المقعد</label>
+                      <select id="map-seat-number" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">اسم الفندق / الغرفة</label>
+                      <select id="map-hotel-name" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                      <input type="checkbox" id="skip-duplicates-check" checked class="rounded text-brand-600">
+                      <span>تخطي الركاب المكررين في نفس الرحلة (بناءً على الجوال أو الهوية)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  <div class="p-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <i class="fa-solid fa-table"></i>
+                      معاينة أولية للبيانات قبل الحفظ (أول 10 صفوف)
+                    </h4>
+                  </div>
+                  <div class="overflow-x-auto max-h-72">
+                    <table class="w-full text-right custom-table text-xs">
+                      <thead id="preview-table-head"></thead>
+                      <tbody id="preview-table-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="p-4 bg-brand-50 border border-brand-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h4 class="text-sm font-bold text-brand-900">جاهز للاستيراد والحفظ في قاعدة البيانات</h4>
+                    <p class="text-xs text-brand-700 mt-0.5">سيتم تصنيف الركاب تلقائياً إلى شقراء والدوادمي وتوليد بطاقات الرحلة</p>
+                  </div>
+                  <button onclick="commitImportData()" class="w-full sm:w-auto px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                    <span>استيراد وحفظ العملاء الآن</span>
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- TAB 2: MANUAL BULK ENTRY -->
+            <div id="import-tab-manual" class="space-y-6 hidden">
+              <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 mb-2">إضافة ركاب يدويًا للرحلة (حتى 50+ راكب)</h3>
+                <p class="text-xs text-slate-500 mb-4">يمكنك لصق قائمة أسماء وأرقام ركاب مباشرة بحيث يكون كل راكب في سطر مستقل</p>
+
+                <div class="mb-4">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">الرحلة المستهدفة:</label>
+                  <select id="manual-target-trip" class="w-full py-2.5 px-3 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                  </select>
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">نقطة الصعود الافتراضية:</label>
+                  <div class="flex gap-4">
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input type="radio" name="manual-default-pickup" value="شقراء" checked class="text-brand-600">
+                      <span>شقراء</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input type="radio" name="manual-default-pickup" value="الدوادمي" class="text-brand-600">
+                      <span>الدوادمي</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">قائمة الركاب (الاسم - الجوال - الهوية - المقعد - نقطة الصعود):</label>
+                  <textarea id="manual-bulk-textarea" rows="8"
+                    placeholder="مثال:&#10;أحمد بن عبدالله العتيبي, 0551234567, 1012345678, 1, شقراء&#10;خالد بن محمد المقرن, 0509876543, 1087654321, 2, شقراء&#10;سعد بن فهد الروقي, 0533344556, 1099887766, 3, الدوادمي"
+                    class="w-full p-3 text-xs sm:text-sm font-mono bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <button onclick="saveManualBulkCustomers()" class="mt-4 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+                  <i class="fa-solid fa-save"></i>
+                  <span>حفظ وإضافة جميع الركاب للرحلة</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 5: SUPERVISOR MANIFEST ==================== -->
+        <section id="view-manifest" class="space-y-6 hidden fade-in">
+          
+          <div class="no-print bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <label class="text-xs font-bold text-slate-700">اختر الرحلة لعرض الكشف:</label>
+              <select id="manifest-trip-select" onchange="renderSupervisorManifest(this.value)"
+                class="py-2 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-navy-900">
+              </select>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="printOfficialManifest()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i>
+                <span>طباعة الكشف (A4)</span>
+              </button>
+              <button onclick="downloadManifestPDF()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>حفظ بصيغة PDF</span>
+              </button>
+              <button onclick="downloadTripExcel()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>تصدير Excel</span>
+              </button>
+              <button onclick="downloadTripVCF()" class="px-3 py-2 bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-address-book"></i>
+                <span>حفظ بالجوال (VCF)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Printable Manifest Document Container -->
+          <div id="manifest-printable-area" class="manifest-paper">
+            
+            <div class="manifest-header-box flex items-center justify-between gap-4 border-2 border-teal-800 rounded-2xl p-4 bg-slate-50">
+              
+              <div class="w-24 text-center shrink-0">
+                <img src="/static/images/logo_vertical_white.jpg" alt="المنفذ المثالي" class="h-20 w-auto mx-auto object-contain">
+              </div>
+
+              <div class="text-center flex-1">
+                <h2 class="text-xl sm:text-2xl font-black text-navy-900 mb-0.5" id="mf-title-main">كشف تسجيل العملاء في الرحلة</h2>
+                <h3 class="text-sm font-bold text-teal-800" id="mf-org-name">المنفذ المثالي لتنظيم الرحلات</h3>
+                <div class="mt-2 pt-2 border-t border-slate-300 flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-slate-800">
+                  <span id="mf-trip-name">رحلة 21 محرم 1448هـ</span>
+                  <span>|</span>
+                  <span id="mf-trip-date">التاريخ: 21 محرم 1448هـ</span>
+                  <span>|</span>
+                  <span id="mf-trip-hotel">الفندق: فندق أبراج مكة ميلينيوم</span>
+                </div>
+              </div>
+
+              <div class="w-24 text-center shrink-0 hidden sm:block">
+                <img src="/static/images/qr_accounts.png" alt="الباركود" class="w-16 h-16 mx-auto object-contain border border-slate-200 p-0.5 bg-white rounded-lg">
+                <p class="text-[9px] font-bold text-slate-600 mt-1">حسابات المؤسسة</p>
+              </div>
+
+            </div>
+
+            <!-- SECTION 1: SHAQRA PASSENGERS -->
+            <div class="mb-8 avoid-break">
+              <div class="bg-card-header-shaqra text-white px-4 py-2 rounded-t-xl flex items-center justify-between font-bold text-sm">
+                <span class="flex items-center gap-2">
+                  <i class="fa-solid fa-location-dot"></i>
+                  أولاً: ركاب شقراء
+                </span>
+                <span id="mf-shaqra-total-badge" class="bg-white/20 px-3 py-0.5 rounded-full text-xs font-black">الإجمالي: 0 عميل</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="manifest-table">
+                  <thead>
+                    <tr>
+                      <th class="w-10">م</th>
+                      <th>اسم العميل</th>
+                      <th>رقم الهوية</th>
+                      <th>رقم الجوال</th>
+                      <th>رقم المقعد</th>
+                      <th>الفندق / الغرفة</th>
+                      <th>حالة الحضور</th>
+                      <th>ملاحظات / إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mf-shaqra-tbody">
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="bg-teal-50 border border-teal-200 p-2.5 rounded-b-xl text-xs font-bold text-teal-900 flex justify-between">
+                <span>إجمالي ركاب نقطة صعود شقراء:</span>
+                <span id="mf-shaqra-subtotal">0 عميل</span>
+              </div>
+            </div>
+
+            <!-- SECTION 2: DAWADMI PASSENGERS -->
+            <div class="mb-8 avoid-break">
+              <div class="bg-card-header-dawadmi text-white px-4 py-2 rounded-t-xl flex items-center justify-between font-bold text-sm">
+                <span class="flex items-center gap-2">
+                  <i class="fa-solid fa-map-pin"></i>
+                  ثانياً: ركاب الدوادمي
+                </span>
+                <span id="mf-dawadmi-total-badge" class="bg-white/20 px-3 py-0.5 rounded-full text-xs font-black">الإجمالي: 0 عميل</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="manifest-table">
+                  <thead>
+                    <tr>
+                      <th class="w-10">م</th>
+                      <th>اسم العميل</th>
+                      <th>رقم الهوية</th>
+                      <th>رقم الجوال</th>
+                      <th>رقم المقعد</th>
+                      <th>الفندق / الغرفة</th>
+                      <th>حالة الحضور</th>
+                      <th>ملاحظات / إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mf-dawadmi-tbody">
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="bg-indigo-50 border border-indigo-200 p-2.5 rounded-b-xl text-xs font-bold text-navy-900 flex justify-between">
+                <span>إجمالي ركاب نقطة صعود الدوادمي:</span>
+                <span id="mf-dawadmi-subtotal">0 عميل</span>
+              </div>
+            </div>
+
+            <!-- SECTION 3: OVERALL SUMMARY & SIGNATURES -->
+            <div class="border-2 border-slate-300 rounded-2xl p-5 bg-slate-50 avoid-break">
+              <div class="flex flex-col sm:flex-row items-center justify-between pb-4 border-b border-slate-200 gap-3">
+                <div>
+                  <h4 class="text-sm font-black text-slate-800">الملخص الإجمالي لكشف الرحلة</h4>
+                  <p class="text-xs text-slate-500">تم تدقيق ومطابقة كشوف الركاب للرحلة</p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-bold">
+                  <span class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl" id="mf-summary-confirmed">المؤكدين: 0</span>
+                  <span class="bg-rose-100 text-rose-800 px-3 py-1.5 rounded-xl" id="mf-summary-noshow">عدم الحضور: 0</span>
+                  <span class="bg-navy-800 text-white px-4 py-1.5 rounded-xl text-sm font-black" id="mf-summary-grandtotal">الإجمالي الكلي: 0 عميل</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-8 pt-6 text-center text-xs">
+                <div>
+                  <p class="font-bold text-slate-700 mb-10">مشرف الرحلة المسؤول</p>
+                  <p class="font-semibold text-slate-500" id="mf-supervisor-name">عبدالرحمن بن خالد المقرن</p>
+                  <p class="text-[11px] text-slate-400">التوقيع: .......................................</p>
+                </div>
+                <div>
+                  <p class="font-bold text-slate-700 mb-10">ختم المنفذ المثالي المعتمد</p>
+                  <p class="font-semibold text-teal-800">فرع شقراء والدوادمي</p>
+                  <p class="text-[11px] text-slate-400">التاريخ: .......................................</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 6: BULK CARDS GENERATOR ==================== -->
+        <section id="view-cards" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800">إصدار بطاقات العملاء</h2>
+              <p class="text-xs text-slate-500 mt-0.5">توليد وطباعة بطاقات الرحلة دفعة واحدة جاهزة للطباعة الورقية أو PDF</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="bulk-cards-trip" onchange="renderBulkCards()"
+                class="py-2 px-3 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+              </select>
+
+              <select id="bulk-cards-filter" onchange="renderBulkCards()"
+                class="py-2 px-3 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                <option value="all">جميع ركاب الرحلة</option>
+                <option value="shaqra">عملاء شقراء فقط</option>
+                <option value="dawadmi">عملاء الدوادمي فقط</option>
+              </select>
+
+              <button onclick="printBulkCards()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i>
+                <span>طباعة جميع البطاقات</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="bulk-cards-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 7: REPORTS & ANALYTICS ==================== -->
+        <section id="view-reports" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800">التقارير والإحصائيات الشاملة</h2>
+              <p class="text-xs text-slate-500 mt-0.5">تحليل وتوزيع العملاء حسب نقاط الصعود والفنادق والرحلات</p>
+            </div>
+            <button onclick="printReport()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
+              <i class="fa-solid fa-print"></i>
+              <span>طباعة التقرير</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-brand-600"></i>
+                توزيع العملاء حسب نقطة الصعود
+              </h3>
+
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-teal-700">فرع شقراء</span>
+                    <span id="report-shaqra-val">0 عميل (0%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                    <div id="report-shaqra-bar" class="bg-teal-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-navy-800">فرع الدوادمي</span>
+                    <span id="report-dawadmi-val">0 عميل (0%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                    <div id="report-dawadmi-bar" class="bg-navy-800 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chart-simple text-brand-600"></i>
+                توزيع العملاء حسب حالة التسجيل والحضور
+              </h3>
+
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-emerald-700">مؤكد الحضور</span>
+                    <span id="report-status-confirmed-val">0 عميل</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div id="report-status-confirmed-bar" class="bg-emerald-500 h-full rounded-full" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-amber-700">مسجل (بانتظار التأكيد)</span>
+                    <span id="report-status-registered-val">0 عميل</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div id="report-status-registered-bar" class="bg-amber-500 h-full rounded-full" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-rose-700">عدم الحضور</span>
+                    <span id="report-status-noshow-val">0 عميل</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div id="report-status-noshow-bar" class="bg-rose-500 h-full rounded-full" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ==================== VIEW 8: SETTINGS & BACKUP ==================== -->
+        <section id="view-settings" class="space-y-6 hidden fade-in">
+          
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-800 mb-1">إعدادات النظام والبيانات</h2>
+            <p class="text-xs text-slate-500 mb-6">تخصيص بيانات المنشأة، رسائل الواتساب التلقائية، والنسخ الاحتياطي</p>
+
+            <form id="settings-form" onsubmit="saveSettings(event)" class="space-y-6">
+              
+              <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <i class="fa-solid fa-building text-brand-600"></i>
+                  بيانات المؤسسة والترخيص
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">اسم المؤسسة</label>
+                    <input type="text" id="set-org-name" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">اسم الفروع</label>
+                    <input type="text" id="set-branch-name" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">رقم الترخيص السياحي</label>
+                    <input type="text" id="set-license-number" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Automated WhatsApp Template -->
+              <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                  <i class="fa-brands fa-whatsapp text-emerald-600 text-base"></i>
+                  قالب رسالة الواتساب التلقائية لعملاء (عدم الحضور)
+                </h3>
+                <p class="text-xs text-slate-500 mb-3">يتم استخدام هذه الرسالة عند الضغط على أيقونة الواتساب للعميل غير الحاضر</p>
+
+                <textarea id="set-whatsapp-template" rows="3"
+                  class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                <p class="text-[11px] text-slate-400 mt-1">المتغيرات المتاحة: {trip_name} اسم الرحلة، {pickup_point} نقطة الصعود</p>
+              </div>
+
+              <div class="flex justify-end">
+                <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center gap-2">
+                  <i class="fa-solid fa-save"></i>
+                  <span>حفظ التغييرات</span>
+                </button>
+              </div>
+
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-slate-200">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <i class="fa-solid fa-shield-halved text-brand-600"></i>
+                  إدارة قاعدة البيانات وحماية النسخ الاحتياطي (Auto-Backup & Recovery)
+                </h3>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                  الحماية التلقائية نشطة
+                </span>
+              </div>
+
+              <!-- Information Banner -->
+              <div class="p-3.5 bg-blue-50/70 border border-blue-200/70 rounded-2xl mb-4 text-xs text-blue-900 flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-blue-600 text-base mt-0.5"></i>
+                <div class="leading-relaxed">
+                  <strong>نظام الحفظ المستمر:</strong> يقوم النظام بحفظ لقطات ذرية (Atomic Snapshots) لقاعدة البيانات بالكامل تلقائياً عند كل تشغيل وعند العمليات الأساسية. لا تُحذف بياناتك عند التحديث أو إعادة تشغيل الخادم. يمكنك أيضاً تنزيل ملف قاعدة البيانات كاملاً كنسخة احتياطية على جهازك في أي وقت.
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                <!-- 1. Download SQLite DB -->
+                <button type="button" onclick="downloadDbBackup()" class="p-3 bg-white hover:bg-brand-50 hover:border-brand-300 border border-slate-200 rounded-xl transition shadow-xs flex items-center gap-3 text-right">
+                  <div class="w-9 h-9 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-download text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">تحميل قاعدة البيانات (.db)</div>
+                    <div class="text-[10px] text-slate-500">حفظ ملف كامل على جهازك</div>
+                  </div>
+                </button>
+
+                <!-- 2. Create Instant Snapshot -->
+                <button type="button" onclick="createManualSnapshot()" class="p-3 bg-white hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 rounded-xl transition shadow-xs flex items-center gap-3 text-right">
+                  <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-camera text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">إنشاء نقطة استعادة فورية</div>
+                    <div class="text-[10px] text-slate-500">أخذ لقطة فورية على الخادم</div>
+                  </div>
+                </button>
+
+                <!-- 3. Restore from File -->
+                <input type="file" id="db-file-upload-input" accept=".db" class="hidden" onchange="uploadBackupDb(this)">
+                <button type="button" onclick="document.getElementById('db-file-upload-input').click()" class="p-3 bg-white hover:bg-amber-50 hover:border-amber-300 border border-slate-200 rounded-xl transition shadow-xs flex items-center gap-3 text-right">
+                  <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-upload text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">استعادة من ملف (.db)</div>
+                    <div class="text-[10px] text-slate-500">رفع نسخة واسترجاعها</div>
+                  </div>
+                </button>
+
+                <!-- 4. Export JSON -->
+                <button type="button" onclick="exportDatabaseBackup()" class="p-3 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition shadow-xs flex items-center gap-3 text-right">
+                  <div class="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-file-code text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">تصدير بيانات JSON</div>
+                    <div class="text-[10px] text-slate-500">نسخة نصية متوافقة</div>
+                  </div>
+                </button>
+              </div>
+
+              <!-- Snapshots History List -->
+              <div class="bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-slate-500 text-xs"></i>
+                    <h4 class="text-xs font-bold text-slate-700">سجل النسخ الاحتياطية المحفوظة محلياً (Snapshots)</h4>
+                  </div>
+                  <button type="button" onclick="loadBackupsList()" class="px-2.5 py-1 text-[11px] font-bold text-brand-700 hover:bg-brand-50 rounded-lg transition border border-brand-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate text-[10px]"></i>
+                    <span>تحديث القائمة</span>
+                  </button>
+                </div>
+
+                <div id="backups-list-container" class="space-y-2">
+                  <div class="text-center py-4 text-xs text-slate-400">جاري تحميل النسخ الاحتياطية...</div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
+                  <span class="text-[11px] text-slate-400">تحتفظ المنظومة بآخر 50 لقطة أوتوماتيكية بأمان</span>
+                  <button type="button" onclick="resetDemoDataConfirm()" class="text-[11px] text-rose-600 hover:text-rose-800 hover:underline font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>إعادة ضبط البيانات التجريبية (إعادة تهيئة)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- ==================== MODAL: SINGLE CUSTOMER CARD (PIXEL PERFECT AS IN USER IMAGE) ==================== -->
+  <div id="customer-card-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-auto fade-in">
+      
+      <!-- Modal Action Bar -->
+      <div class="no-print p-4 bg-slate-900 text-white flex items-center justify-between">
+        <span class="text-xs font-bold flex items-center gap-2">
+          <i class="fa-solid fa-id-card text-brand-400"></i>
+          بطاقة العميل المعتمدة
+        </span>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadSingleCardImage()" title="تحميل البطاقة كصورة عالية الدقة PNG" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow">
+            <i class="fa-solid fa-image"></i>
+            <span>تحميل صورة (PNG)</span>
+          </button>
+          <button onclick="downloadSingleCardPDF()" title="تحميل البطاقة كملف PDF عالي الجودة" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>تحميل PDF</span>
+          </button>
+          <button onclick="shareCustomerCard()" title="مشاركة البطاقة عبر تطبيقات الجوال" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs transition">
+            <i class="fa-solid fa-share-nodes"></i>
+          </button>
+          <button onclick="printSingleCard()" title="طباعة البطاقة مباشرة" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs transition">
+            <i class="fa-solid fa-print"></i>
+          </button>
+          <button onclick="closeCustomerCardModal()" class="p-2 text-slate-400 hover:text-white rounded-xl text-sm">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD CANVAS ELEMENT (IDENTICAL TO SCREENSHOT) -->
+      <div class="p-6 bg-slate-100 flex justify-center">
+        <div id="printable-card-element" class="passenger-card">
+          
+          <!-- Card Header -->
+          <div class="passenger-card-header">
+            <div class="card-header-top">
+              <!-- Right Logo in white box -->
+              <div class="card-logo-box">
+                <img src="/static/images/logo_vertical_white.jpg" alt="المنفذ المثالي">
+              </div>
+              
+              <!-- Center Titles -->
+              <div class="card-title-box">
+                <h3 class="card-title-text">المنفذ المثالي لتنظيم الرحلات</h3>
+              </div>
+
+              <!-- Left Badge -->
+              <div class="card-badge-box">
+                <span class="card-badge-pill"><span class="badge-text">بطاقة راكب</span></span>
+              </div>
+            </div>
+
+            <!-- Passenger Name Box -->
+            <div class="card-name-box">
+              <span class="card-name-label">اسم الراكب الكريم</span>
+              <h2 id="card-cust-name">علي</h2>
+            </div>
+          </div>
+
+          <!-- Card Details Body -->
+          <div class="passenger-card-body">
+            
+            <!-- Row 1: Trip Name & Hijri Date -->
+            <div class="card-row-2">
+              <div class="card-info-box card-trip-box">
+                <span class="card-label">اسم الرحلة</span>
+                <span id="card-trip-name" class="card-val">رحلة 21 محرم 1448هـ</span>
+              </div>
+              <div class="card-info-box card-date-box">
+                <span class="card-label">تاريخ الرحلة</span>
+                <span id="card-trip-date" class="card-val">21 محرم 1448هـ</span>
+              </div>
+            </div>
+
+            <!-- Row 2: 3 Cards (Pickup, Seat, Room) -->
+            <div class="card-row-3">
+              <div class="card-info-box card-pickup-box">
+                <span class="card-label text-teal">نقطة الصعود</span>
+                <span id="card-pickup-point" class="card-val-lg text-teal-dark">شقراء</span>
+              </div>
+              <div class="card-info-box card-seat-box">
+                <span class="card-label text-indigo">رقم المقعد</span>
+                <span id="card-seat-number" class="card-val-xl text-indigo-dark">1</span>
+              </div>
+              <div class="card-info-box card-room-box">
+                <span class="card-label text-amber">رقم الغرفة</span>
+                <span id="card-room-number" class="card-val-lg text-amber-dark">-</span>
+              </div>
+            </div>
+
+            <!-- Row 3: Hotel -->
+            <div class="card-info-box card-hotel-box">
+              <span class="card-hotel-label">فندق الإقامة:</span>
+              <span id="card-hotel-name" class="card-hotel-val">فندق أبراج مكة ميلينيوم</span>
+            </div>
+
+            <!-- Row 4: Phone only -->
+            <div class="card-phone-row">
+              <span class="card-phone-label">رقم الجوال:</span>
+              <span id="card-phone" class="card-phone-val">0503626365</span>
+            </div>
+
+          </div>
+
+          <!-- Card Official Footer with QR Code -->
+          <div class="passenger-card-footer">
+            <div class="card-footer-qr-side">
+              <img src="/static/images/qr_accounts.png" alt="QR" class="card-qr-img">
+              <span class="card-qr-label">جميع حساباتنا - في مكان واحد</span>
+            </div>
+
+            <div class="card-footer-price-side">
+              <span class="card-price-label">المبلغ المتبقي</span>
+              <span id="card-ticket-price" class="card-price-val">150 ريال</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD / EDIT TRIP ==================== -->
+  <div id="trip-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-auto fade-in">
+      <div class="p-5 bg-brand-header text-white flex items-center justify-between">
+        <h3 id="trip-modal-title" class="text-base font-bold flex items-center gap-2">
+          <i class="fa-solid fa-route"></i>
+          إضافة رحلة جديدة
+        </h3>
+        <button onclick="closeTripModal()" class="text-slate-200 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="trip-modal-form" onsubmit="handleTripSubmit(event)" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="trip-modal-id">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">اسم الرحلة <span class="text-red-500">*</span></label>
+          <input type="text" id="trip-name-input" required placeholder="مثال: رحلة 21 محرم 1448هـ"
+            class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">التاريخ الهجري <span class="text-red-500">*</span></label>
+            <input type="text" id="trip-hijri-input" required placeholder="21 محرم 1448هـ"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">التاريخ الميلادي (اختياري)</label>
+            <input type="date" id="trip-gregorian-input"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">اسم الفندق / فندق الإقامة <span class="text-teal-600 font-semibold">(مهم)</span></label>
+          <input type="text" id="trip-hotel-input" placeholder="مثال: فندق أبراج مكة ميلينيوم أو أنوار المدينة"
+            class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">رقم أو اسم الحافلة</label>
+            <input type="text" id="trip-bus-input" placeholder="حافلة VIP 1"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">مشرف الرحلة</label>
+            <input type="text" id="trip-supervisor-input" placeholder="اسم المشرف المسؤول"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">اسم السائق</label>
+            <input type="text" id="trip-driver-input" placeholder="سعد الدوسري"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">جوال السائق</label>
+            <input type="text" id="trip-driver-phone-input" placeholder="05xxxxxxxx"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">وصف أو تفاصيل إضافية</label>
+          <textarea id="trip-desc-input" rows="2" placeholder="ملاحظات الرحلة..."
+            class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeTripModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold">إلغاء</button>
+          <button type="submit" class="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">حفظ الرحلة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD / EDIT SINGLE CUSTOMER ==================== -->
+  <div id="customer-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-auto fade-in">
+      <div class="p-5 bg-brand-header text-white flex items-center justify-between">
+        <h3 id="cust-modal-title" class="text-base font-bold flex items-center gap-2">
+          <i class="fa-solid fa-user-plus"></i>
+          تسجيل عميل جديد
+        </h3>
+        <button onclick="closeCustomerModal()" class="text-slate-200 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="cust-modal-form" onsubmit="handleCustomerSubmit(event)" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="cust-modal-id">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">الرحلة المستهدفة <span class="text-red-500">*</span></label>
+          <select id="cust-modal-trip-select" required
+            class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">اسم العميل الكامل <span class="text-red-500">*</span></label>
+          <input type="text" id="cust-modal-name" required placeholder="أحمد بن عبدالله العتيبي"
+            class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">رقم الجوال <span class="text-red-500">*</span></label>
+            <input type="text" id="cust-modal-phone" required placeholder="05xxxxxxxx"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">رقم الهوية الوطنية</label>
+            <input type="text" id="cust-modal-idnum" placeholder="10xxxxxxxx"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">نقطة الصعود <span class="text-red-500">*</span></label>
+            <select id="cust-modal-pickup" required
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white font-bold text-teal-800">
+              <option value="شقراء">شقراء</option>
+              <option value="الدوادمي">الدوادمي</option>
+              <option value="أخرى">أخرى</option>
+            </select>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block font-bold text-slate-700">رقم المقعد</label>
+              <span class="text-[10px] text-teal-700 font-bold">1 إلى 50 أو يدوي</span>
+            </div>
+            <div class="flex gap-2">
+              <select id="cust-modal-seat-select" onchange="syncSeatFromSelect('cust-modal-seat-select', 'cust-modal-seat')"
+                class="w-1/2 p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white font-bold">
+                <option value="">اختر (1-50)...</option>
+              </select>
+              <input type="text" id="cust-modal-seat" oninput="syncSeatFromInput('cust-modal-seat', 'cust-modal-seat-select')"
+                placeholder="أو اكتب يدوياً"
+                class="w-1/2 p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white font-bold">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">الفندق</label>
+            <input type="text" id="cust-modal-hotel" placeholder="فندق أبراج مكة"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">رقم الغرفة</label>
+            <input type="text" id="cust-modal-room" placeholder="مثال: 512"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">المبلغ المتبقي (ريال)</label>
+            <input type="number" id="cust-modal-price" placeholder="مثال: 150"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white font-bold text-teal-800">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">حالة التسجيل</label>
+            <select id="cust-modal-status"
+              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+              <option value="مؤكد">مؤكد</option>
+              <option value="مسجل">مسجل</option>
+              <option value="عدم الحضور">عدم الحضور</option>
+              <option value="ملغي">ملغي</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ملاحظات</label>
+          <input type="text" id="cust-modal-notes" placeholder="ملاحظات العميل..."
+            class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold">إلغاء</button>
+          <button type="submit" class="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition">حفظ العميل</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
+  <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- App Script -->
+  <script src="/static/app.js?v=20261007_startup_instant_v8"></script>
+</body>
+</html>

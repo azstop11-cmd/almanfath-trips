@@ -1,0 +1,655 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+
+:root {
+  --primary: #009ca6;
+  --primary-dark: #00828a;
+  --primary-light: #e6f7f7;
+  --navy: #0f4c81;
+  --navy-dark: #0a3359;
+  --accent-gold: #d97706;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  direction: rtl;
+  text-align: right;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Brand Gradients */
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #00828a 0%, #009ca6 50%, #0f4c81 100%);
+}
+
+.bg-brand-header {
+  background: linear-gradient(90deg, #0f4c81 0%, #00828a 100%);
+}
+
+.bg-card-header-shaqra {
+  background: linear-gradient(135deg, #00828a 0%, #009ca6 100%);
+}
+
+.bg-card-header-dawadmi {
+  background: linear-gradient(135deg, #0f4c81 0%, #1e3a8a 100%);
+}
+
+/* Islamic Pattern Overlay */
+.islamic-pattern {
+  background-color: #0f4c81;
+  background-image: radial-gradient(#00a8a8 0.75px, transparent 0.75px), radial-gradient(#00a8a8 0.75px, #0f4c81 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+/* Modern Card Glass effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Table styling */
+.custom-table th {
+  background-color: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  padding: 12px 14px;
+  font-size: 0.875rem;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.custom-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.custom-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* Badge styles */
+.badge-shaqra {
+  background-color: #ccfbf1;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+}
+
+.badge-dawadmi {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.badge-confirmed {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-registered {
+  background-color: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.badge-noshow {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  animation: pulse-border 2s infinite;
+}
+
+.badge-cancelled {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* ========================================================== */
+/* EXACT PASSENGER CARD DESIGN (IDENTICAL TO USER TEMPLATE)  */
+/* ========================================================== */
+
+/* ==================== PASSENGER CARD STYLING (PERFECT PRINT & PDF) ==================== */
+.passenger-card {
+  width: 440px !important;
+  max-width: 440px !important;
+  margin: 0 auto !important;
+  border-radius: 28px !important;
+  overflow: hidden !important;
+  box-shadow: 0 15px 35px -5px rgba(0, 156, 166, 0.25), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: 3px solid #009ca6 !important;
+  background: #ffffff !important;
+  position: relative !important;
+  direction: rtl !important;
+  text-align: right !important;
+  box-sizing: border-box !important;
+}
+
+.passenger-card,
+.passenger-card * {
+  letter-spacing: 0px !important;
+  word-spacing: 0px !important;
+  box-sizing: border-box !important;
+  font-family: 'Tajawal', 'Cairo', Tahoma, sans-serif !important;
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+.passenger-card-header {
+  background: linear-gradient(180deg, #009ca6 0%, #008791 100%) !important;
+  color: #ffffff !important;
+  padding: 16px 18px 18px 18px !important;
+  position: relative !important;
+  width: 100% !important;
+}
+
+.card-header-top {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+}
+
+.card-logo-box {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important;
+  flex-shrink: 0 !important;
+}
+
+.card-logo-box img {
+  max-height: 100% !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+}
+
+.card-title-box {
+  flex: 1 1 auto !important;
+  text-align: right !important;
+}
+
+.card-title-text {
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  color: #ffffff !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+}
+
+.card-badge-box {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.card-badge-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 110, 118, 0.65) !important;
+  color: #ffffff !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  height: 30px !important;
+  padding: 0 14px !important;
+  line-height: 1 !important;
+  border-radius: 9999px !important;
+  white-space: nowrap !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.badge-text {
+  position: relative !important;
+  top: -3px !important;
+  display: inline-block !important;
+  line-height: 1 !important;
+  letter-spacing: 0px !important;
+  color: #ffffff !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+}
+
+.card-name-box {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-radius: 20px !important;
+  padding: 8px 14px 16px 14px !important;
+  text-align: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.card-name-label {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: #ccfbf1 !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+  line-height: 1.1 !important;
+}
+
+#card-cust-name,
+.card-name-text {
+  font-size: 24.5px !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  display: block !important;
+  color: #ffffff !important;
+  word-break: normal !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+  position: relative !important;
+  top: -2px !important;
+}
+
+.passenger-card-body {
+  padding: 16px 18px !important;
+  background: #ffffff !important;
+  width: 100% !important;
+}
+
+.card-row-2 {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  width: 100% !important;
+  margin-bottom: 12px !important;
+}
+
+.card-info-box {
+  box-sizing: border-box !important;
+  border-radius: 18px !important;
+}
+
+.card-trip-box,
+.card-date-box {
+  flex: 1 1 50% !important;
+  width: 50% !important;
+  background: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
+  padding: 10px 8px !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.card-label {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  display: block !important;
+  margin-bottom: 3px !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+}
+
+.card-val {
+  font-size: 13.5px !important;
+  font-weight: 900 !important;
+  color: #1e293b !important;
+  display: block !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  text-align: center !important;
+}
+
+.card-row-3 {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin-bottom: 12px !important;
+}
+
+.card-pickup-box {
+  flex: 1 1 33.33% !important;
+  width: 33.33% !important;
+  background: #f0fdfa !important;
+  border: 1.5px solid #99f6e4 !important;
+  padding: 10px 4px !important;
+  text-align: center !important;
+}
+
+.card-seat-box {
+  flex: 1 1 33.33% !important;
+  width: 33.33% !important;
+  background: #eef2ff !important;
+  border: 1.5px solid #c7d2fe !important;
+  padding: 10px 4px !important;
+  text-align: center !important;
+}
+
+.card-room-box {
+  flex: 1 1 33.33% !important;
+  width: 33.33% !important;
+  background: #fffbeb !important;
+  border: 1.5px solid #fde68a !important;
+  padding: 10px 4px !important;
+  text-align: center !important;
+}
+
+.text-teal { color: #0f766e !important; }
+.text-teal-dark { color: #134e4a !important; }
+.text-indigo { color: #4338ca !important; }
+.text-indigo-dark { color: #1e1b4b !important; }
+.text-amber { color: #b45309 !important; }
+.text-amber-dark { color: #451a03 !important; }
+
+.card-val-lg {
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  display: block !important;
+  line-height: 1.25 !important;
+}
+
+.card-val-xl {
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  display: block !important;
+  line-height: 1.2 !important;
+}
+
+.card-hotel-box {
+  background: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
+  padding: 11px 14px !important;
+  text-align: center !important;
+  width: 100% !important;
+  margin-bottom: 10px !important;
+}
+
+.card-hotel-label {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  margin-left: 6px !important;
+}
+
+.card-hotel-val {
+  font-size: 13.5px !important;
+  font-weight: 900 !important;
+  color: #0f172a !important;
+}
+
+.card-phone-row {
+  text-align: center !important;
+  padding: 4px 0 2px 0 !important;
+  width: 100% !important;
+}
+
+.card-phone-label {
+  font-size: 12.5px !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  margin-left: 4px !important;
+}
+
+.card-phone-val {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  color: #1e293b !important;
+  font-family: monospace, Tahoma, sans-serif !important;
+}
+
+.passenger-card-footer {
+  background: #ffffff !important;
+  border-top: 2px dashed #cbd5e1 !important;
+  padding: 14px 18px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+
+.card-footer-qr-side {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.card-qr-img {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: contain !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+.card-qr-label {
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  color: #134e4a !important;
+  line-height: 1.3 !important;
+}
+
+.card-footer-price-side {
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+
+.card-price-label {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #64748b !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+  line-height: 1.2 !important;
+}
+
+.card-price-val {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  color: #0f766e !important;
+  display: block !important;
+  font-family: monospace, 'Tajawal', sans-serif !important;
+  line-height: 1.2 !important;
+}
+
+/* Manifest Official Styling */
+.manifest-paper {
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 30px;
+}
+
+.manifest-header-box {
+  border: 2px solid #00828a;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: #ffffff;
+}
+
+.manifest-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.manifest-table th {
+  background: #00828a;
+  color: #ffffff;
+  font-weight: bold;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #00686e;
+  text-align: center;
+}
+
+.manifest-table td {
+  padding: 7px 9px;
+  font-size: 12.5px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+}
+
+.manifest-table tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+/* PRINT STYLES */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .no-print, nav, aside, header, .action-buttons, #toast-container, .modal-backdrop {
+    display: none !important;
+  }
+  
+  #main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .manifest-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .manifest-header-box {
+    border: 2px solid #000 !important;
+    margin-bottom: 15px !important;
+    padding: 10px !important;
+  }
+  
+  .manifest-table th {
+    background-color: #e2e8f0 !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .manifest-table td {
+    border: 1px solid #000000 !important;
+  }
+  
+  .passenger-card {
+    box-shadow: none !important;
+    border: 2px solid #009ca6 !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .passenger-card-header {
+    background: #009ca6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .page-break {
+    page-break-before: always;
+  }
+  
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+  
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.clickable-name {
+  cursor: pointer;
+  color: #00828a;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 4px;
+}
+
+.clickable-name:hover {
+  color: #0f4c81;
+  text-decoration-style: solid;
+}

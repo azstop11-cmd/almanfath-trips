@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: almanfath-trips
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: trips-data
+      mountPath: /var/data
+      sizeGB: 1
