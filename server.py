@@ -991,13 +991,17 @@ def reset_demo_data():
     conn.close()
     return {"success": True, "message": "تمت إعادة ضبط البيانات التجريبية بنجاح"}
 
-@app.get("/", response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def index():
     html_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
             return f.read()
     return "<h1>نظام المنفذ المثالي - جاري تحميل الملفات...</h1>"
+
+@app.api_route("/healthz", methods=["GET", "HEAD"])
+def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
