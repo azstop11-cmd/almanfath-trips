@@ -542,6 +542,46 @@ async def batch_delete_customers(req: BatchDeleteRequest, conn: sqlite3.Connecti
     await broadcast_change("customers", "delete")
     return {"success": True, "message": f"تم حذف {len(req.customer_ids)} عميل بنجاح"}
 
+class BatchStatusUpdateRequest(BaseModel):
+    trip_id: Optional[int] = None
+    customer_ids: Optional[List[int]] = None
+    status: str
+    previous_status: Optional[str] = None
+
+@app.post("/api/customers/batch-status")
+async def batch_update_status(req: BatchStatusUpdateRequest, conn: sqlite3.Connection = Depends(get_db)):
+    cursor = conn.cursor()
+    valid_statuses = ["مسجل", "مؤكد", "عدم الحضور", "ملغي"]
+    if req.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="الحالة غير صالحة")
+
+    query = "UPDATE customers SET status = ? WHERE 1=1"
+    params = [req.status]
+
+    if req.trip_id is not None:
+        query += " AND trip_id = ?"
+        params.append(req.trip_id)
+
+    if req.customer_ids:
+        placeholders = ",".join("?" for _ in req.customer_ids)
+        query += f" AND id IN ({placeholders})"
+        params.extend(req.customer_ids)
+
+    if req.previous_status and req.previous_status != "الكل":
+        query += " AND status = ?"
+        params.append(req.previous_status)
+
+    cursor.execute(query, params)
+    updated_count = cursor.rowcount
+    conn.commit()
+    await broadcast_change("customers", "status")
+    return {
+        "success": True,
+        "updated_count": updated_count,
+        "status": req.status,
+        "message": f"تم تعديل حالة {updated_count} راكب إلى ({req.status}) بنجاح"
+    }
+
 # ----------------- Excel / CSV Import API ----------------- #
 
 @app.post("/api/import/preview")

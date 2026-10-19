@@ -134,10 +134,11 @@ async function initApp() {
       loadCustomers()
     ]);
 
-    // 2. Select the best active trip (prioritize active trip with passengers)
-    const tripWithPassengers = state.trips.find(t => (t.total_customers || 0) > 0 && t.status !== 'archived');
+    // 2. Select the best active trip (strictly from active non-archived trips)
+    const activeTrips = state.trips.filter(t => t.status === 'active' || !t.status);
+    const tripWithPassengers = activeTrips.find(t => (t.total_customers || 0) > 0);
     const savedTripId = parseInt(localStorage.getItem('manfath_active_trip'), 10);
-    const savedTripObj = state.trips.find(t => t.id === savedTripId);
+    const savedTripObj = activeTrips.find(t => t.id === savedTripId);
 
     if (savedTripObj && (savedTripObj.total_customers || 0) > 0) {
       state.activeTripId = savedTripId;
@@ -146,8 +147,7 @@ async function initApp() {
     } else if (savedTripObj) {
       state.activeTripId = savedTripId;
     } else {
-      const firstActive = state.trips.find(t => t.status === 'active' || !t.status);
-      state.activeTripId = firstActive ? firstActive.id : (state.trips[0]?.id || null);
+      state.activeTripId = activeTrips[0]?.id || null;
     }
 
     if (state.activeTripId) {
@@ -266,25 +266,117 @@ async function loadSettings() {
 }
 
 function applySettingsToUI() {
-  const s = state.settings;
+  const s = state.settings || {};
   if (document.getElementById('set-org-name')) {
     document.getElementById('set-org-name').value = s.org_name || '';
     document.getElementById('set-branch-name').value = s.branch_name || '';
     document.getElementById('set-license-number').value = s.license_number || '';
-    document.getElementById('set-whatsapp-template').value = s.whatsapp_template || '';
   }
+
+  // Legacy fallback if old single template exists
+  if (document.getElementById('set-whatsapp-template')) {
+    document.getElementById('set-whatsapp-template').value = s.whatsapp_template_1 || s.whatsapp_template || '';
+  }
+
+  // Multi-formula WhatsApp settings (1 to 5)
+  const defaultFormula1 = "السلام عليكم ورحمة الله وبركاته، معك مشرف رحلة [{trip_name}] من المنفذ المثالي. نود الاطمئنان والتأكيد على موعد انطلاق الرحلة من نقطة {pickup_point}.";
+  const formulaDefaults = [
+    { idx: 1, title: 'صيغة 1 (الأساسية / تأكيد الحجز)', tpl: s.whatsapp_template_1 || s.whatsapp_template || defaultFormula1 },
+    { idx: 2, title: 'صيغة 2 (تذكير بالموعد)', tpl: s.whatsapp_template_2 || '' },
+    { idx: 3, title: 'صيغة 3 (انطلاق الباص)', tpl: s.whatsapp_template_3 || '' },
+    { idx: 4, title: 'صيغة 4 (استبيان رأي)', tpl: s.whatsapp_template_4 || '' },
+    { idx: 5, title: 'صيغة 5 (رسالة مخصصة)', tpl: s.whatsapp_template_5 || '' }
+  ];
+
+  formulaDefaults.forEach(f => {
+    const titleEl = document.getElementById(`set-whatsapp-title-${f.idx}`);
+    const tplEl = document.getElementById(`set-whatsapp-template-${f.idx}`);
+    if (titleEl) {
+      titleEl.value = s[`whatsapp_title_${f.idx}`] !== undefined ? s[`whatsapp_title_${f.idx}`] : f.title;
+    }
+    if (tplEl) {
+      tplEl.value = s[`whatsapp_template_${f.idx}`] !== undefined ? s[`whatsapp_template_${f.idx}`] : f.tpl;
+    }
+  });
+
+  const activeSel = document.getElementById('set-whatsapp-active-select');
+  if (activeSel) {
+    activeSel.value = s.whatsapp_active_template || '1';
+  }
+
+  populateWhatsAppFormulaSelectors();
+
   if (document.getElementById('mf-org-name') && s.branch_name) {
     document.getElementById('mf-org-name').textContent = `${s.org_name || 'المنفذ المثالي'} – ${s.branch_name}`;
   }
 }
 
+function switchSettingsWhatsAppTab(tabIdx) {
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.getElementById(`wa-tab-btn-${i}`);
+    const panel = document.getElementById(`wa-panel-${i}`);
+    if (btn) {
+      if (i === tabIdx) {
+        btn.classList.add('bg-white', 'text-emerald-700', 'shadow-xs', 'font-black');
+        btn.classList.remove('text-slate-600', 'hover:bg-white/60');
+      } else {
+        btn.classList.remove('bg-white', 'text-emerald-700', 'shadow-xs', 'font-black');
+        btn.classList.add('text-slate-600', 'hover:bg-white/60');
+      }
+    }
+    if (panel) {
+      if (i === tabIdx) {
+        panel.classList.remove('hidden');
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+  }
+}
+
+function populateWhatsAppFormulaSelectors() {
+  const s = state.settings || {};
+  const selects = ['bus-wa-template-select', 'set-whatsapp-active-select'];
+
+  selects.forEach(selId => {
+    const el = document.getElementById(selId);
+    if (!el) return;
+    const currentVal = el.value || s.whatsapp_active_template || '1';
+    el.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      const title = s[`whatsapp_title_${i}`] || (i === 1 ? 'صيغة 1 (الأساسية / تأكيد الحجز)' : `صيغة ${i}`);
+      const tpl = s[`whatsapp_template_${i}`] || (i === 1 ? (s.whatsapp_template || '') : '');
+      const isBlank = !tpl || !tpl.trim();
+      opt.textContent = `${title} ${isBlank && i > 1 ? '(فارغة)' : ''}`;
+      if (opt.value === String(currentVal)) {
+        opt.selected = true;
+      }
+      el.appendChild(opt);
+    }
+  });
+}
+
 async function saveSettings(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
+  const tpl1 = document.getElementById('set-whatsapp-template-1')?.value || '';
   const updated = {
-    org_name: document.getElementById('set-org-name').value.trim(),
-    branch_name: document.getElementById('set-branch-name').value.trim(),
-    license_number: document.getElementById('set-license-number').value.trim(),
-    whatsapp_template: document.getElementById('set-whatsapp-template').value.trim()
+    org_name: document.getElementById('set-org-name')?.value.trim() || '',
+    branch_name: document.getElementById('set-branch-name')?.value.trim() || '',
+    license_number: document.getElementById('set-license-number')?.value.trim() || '',
+    whatsapp_active_template: document.getElementById('set-whatsapp-active-select')?.value || '1',
+    whatsapp_title_1: document.getElementById('set-whatsapp-title-1')?.value.trim() || 'صيغة 1',
+    whatsapp_template_1: tpl1,
+    whatsapp_title_2: document.getElementById('set-whatsapp-title-2')?.value.trim() || 'صيغة 2',
+    whatsapp_template_2: document.getElementById('set-whatsapp-template-2')?.value || '',
+    whatsapp_title_3: document.getElementById('set-whatsapp-title-3')?.value.trim() || 'صيغة 3',
+    whatsapp_template_3: document.getElementById('set-whatsapp-template-3')?.value || '',
+    whatsapp_title_4: document.getElementById('set-whatsapp-title-4')?.value.trim() || 'صيغة 4',
+    whatsapp_template_4: document.getElementById('set-whatsapp-template-4')?.value || '',
+    whatsapp_title_5: document.getElementById('set-whatsapp-title-5')?.value.trim() || 'صيغة 5',
+    whatsapp_template_5: document.getElementById('set-whatsapp-template-5')?.value || '',
+    whatsapp_template: tpl1
   };
 
   try {
@@ -296,10 +388,12 @@ async function saveSettings(e) {
     if (res.ok) {
       state.settings = { ...state.settings, ...updated };
       applySettingsToUI();
-      showToast('تم حفظ الإعدادات بنجاح', 'success');
+      showToast('تم حفظ جميع الإعدادات وصيغ الواتساب بنجاح', 'success');
+    } else {
+      showToast('حدث خطأ أثناء حفظ الإعدادات', 'error');
     }
   } catch (err) {
-    showToast('فشل حفظ الإعدادات', 'error');
+    showToast('فشل حفظ الإعدادات - تحقق من الاتصال', 'error');
   }
 }
 
@@ -401,8 +495,12 @@ function populateTripSelectors() {
     'manual-target-trip',
     'manifest-trip-select',
     'bulk-cards-trip',
-    'cust-modal-trip-select'
+    'cust-modal-trip-select',
+    'batch-status-trip-select',
+    'bus-filter-trip'
   ];
+
+  const activeTrips = state.trips.filter(t => t.status === 'active' || !t.status);
 
   selectors.forEach(selId => {
     const el = document.getElementById(selId);
@@ -418,40 +516,13 @@ function populateTripSelectors() {
       el.appendChild(optAll);
     }
 
-    const activeTrips = state.trips.filter(t => t.status === 'active' || !t.status);
-    const archivedTrips = state.trips.filter(t => t.status === 'archived');
-
-    if (activeTrips.length > 0 && archivedTrips.length > 0) {
-      const grpActive = document.createElement('optgroup');
-      grpActive.label = 'الرحلات النشطة والجارية';
-      activeTrips.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = `${t.name} (${t.total_customers || 0} راكب)`;
-        if (t.id === state.activeTripId) opt.selected = true;
-        grpActive.appendChild(opt);
-      });
-      el.appendChild(grpActive);
-
-      const grpArchive = document.createElement('optgroup');
-      grpArchive.label = 'أرشيف الرحلات السابقة';
-      archivedTrips.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = `[مؤرشفة] ${t.name} (${t.total_customers || 0} راكب)`;
-        if (t.id === state.activeTripId) opt.selected = true;
-        grpArchive.appendChild(opt);
-      });
-      el.appendChild(grpArchive);
-    } else {
-      state.trips.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = `${t.status === 'archived' ? '[مؤرشفة] ' : ''}${t.name} (${t.total_customers || 0} راكب)`;
-        if (t.id === state.activeTripId) opt.selected = true;
-        el.appendChild(opt);
-      });
-    }
+    activeTrips.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = `${t.name} (${t.total_customers || 0} راكب)`;
+      if (t.id === state.activeTripId) opt.selected = true;
+      el.appendChild(opt);
+    });
 
     if (currentVal && Array.from(el.options).some(o => o.value == currentVal)) {
       el.value = currentVal;
@@ -1208,10 +1279,10 @@ function renderCustomersTable() {
       </td>
       <td class="text-center">
         <div class="inline-flex items-center gap-1.5">
-          <a href="${waLink}" target="_blank" title="مراسلة العميل عبر الواتساب فوراً"
+          <button onclick="openWhatsAppModal(${c.id})" title="مراسلة العميل عبر الواتساب (اختيار الصيغة)"
             class="p-1.5 ${isNoShow ? 'bg-emerald-600 text-white animate-bounce' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white'} rounded-lg transition text-xs flex items-center justify-center">
             <i class="fa-brands fa-whatsapp text-sm"></i>
-          </a>
+          </button>
 
           <a href="${callLink}" title="اتصال هاتفي مباشر بالعميل"
             class="p-1.5 ${isNoShow ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white'} rounded-lg transition text-xs flex items-center justify-center">
@@ -2747,11 +2818,18 @@ if (typeof document !== 'undefined') {
 }
 
 function isAnyModalOpen() {
-  const custModal = document.getElementById('customer-modal');
-  if (custModal && !custModal.classList.contains('hidden')) return true;
-  const tripModal = document.getElementById('trip-modal');
-  if (tripModal && !tripModal.classList.contains('hidden')) return true;
-  return false;
+  const modalIds = [
+    'customer-modal',
+    'trip-modal',
+    'batch-status-modal',
+    'whatsapp-modal',
+    'customer-card-modal',
+    'import-step-2'
+  ];
+  return modalIds.some(id => {
+    const el = document.getElementById(id);
+    return el && !el.classList.contains('hidden');
+  });
 }
 
 async function handleQuietDataSync(info) {
@@ -2998,12 +3076,16 @@ function showToast(message, type = 'info') {
 
 function renderBusSupervisorView() {
   const tripSelect = document.getElementById('bus-filter-trip');
-  if (tripSelect && state.trips.length > 0) {
-    tripSelect.innerHTML = state.trips.map(t => 
-      `<option value="${t.id}" ${t.id === (busFilterState.tripId || state.activeTripId) ? 'selected' : ''}>${t.name} (${t.hijri_date})</option>`
+  const activeTrips = state.trips.filter(t => t.status === 'active' || !t.status);
+  if (tripSelect && activeTrips.length > 0) {
+    tripSelect.innerHTML = activeTrips.map(t => 
+      `<option value="${t.id}" ${t.id === (busFilterState.tripId || state.activeTripId) ? 'selected' : ''}>${t.name} (${t.hijri_date || ''})</option>`
     ).join('');
-    if (!busFilterState.tripId) busFilterState.tripId = state.activeTripId || state.trips[0].id;
+    if (!busFilterState.tripId || !activeTrips.some(t => t.id === busFilterState.tripId)) {
+      busFilterState.tripId = (activeTrips.find(t => t.id === state.activeTripId) || activeTrips[0]).id;
+    }
   }
+  populateWhatsAppFormulaSelectors();
   filterBusSupervisor();
 }
 
@@ -3167,10 +3249,10 @@ function renderBusSupervisorTable(list) {
       <!-- 6. تواصل وإجراءات -->
       <td class="text-center">
         <div class="inline-flex items-center gap-1.5">
-          <a href="${waLink}" target="_blank" title="مراسلة واتساب فوراً"
+          <button onclick="openWhatsAppModal(${c.id})" title="مراسلة واتساب فوراً (اختيار الصيغة)"
             class="p-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-xl transition flex items-center justify-center text-sm shadow-sm">
             <i class="fa-brands fa-whatsapp"></i>
-          </a>
+          </button>
           <a href="${callLink}" title="اتصال هاتفي مباشر"
             class="p-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl transition flex items-center justify-center text-xs shadow-sm">
             <i class="fa-solid fa-phone"></i>
@@ -3219,3 +3301,326 @@ async function updateBusCustomerField(id, field, value) {
 function printBusSupervisorList() {
   window.print();
 }
+
+// ==================== BATCH STATUS UPDATE (تعديل الحالات دفعة واحدة) ==================== //
+
+let selectedBatchTarget = 'مسجل';
+
+function openBatchStatusModal() {
+  populateTripSelectors();
+  const tripSel = document.getElementById('batch-status-trip-select');
+  if (tripSel) {
+    const activeTrips = state.trips.filter(t => t.status === 'active' || !t.status);
+    if (busFilterState.tripId && activeTrips.some(t => t.id === busFilterState.tripId)) {
+      tripSel.value = busFilterState.tripId;
+    } else if (state.activeTripId && activeTrips.some(t => t.id === state.activeTripId)) {
+      tripSel.value = state.activeTripId;
+    } else if (activeTrips.length > 0) {
+      tripSel.value = activeTrips[0].id;
+    }
+  }
+
+  const fromSel = document.getElementById('batch-status-from');
+  if (fromSel) fromSel.value = 'الكل';
+
+  selectBatchTargetStatus('مسجل');
+  updateBatchStatusPreview();
+
+  const modal = document.getElementById('batch-status-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeBatchStatusModal() {
+  const modal = document.getElementById('batch-status-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function selectBatchTargetStatus(val) {
+  selectedBatchTarget = val;
+  const radios = document.querySelectorAll('input[name="batch-target-status"]');
+  radios.forEach(r => {
+    if (r.value === val) r.checked = true;
+  });
+
+  document.querySelectorAll('.batch-status-opt').forEach(opt => {
+    const input = opt.querySelector('input');
+    if (input && input.value === val) {
+      opt.classList.add('border-teal-500', 'bg-teal-50/60');
+      opt.classList.remove('border-slate-200', 'bg-white', 'border-amber-400');
+    } else {
+      opt.classList.remove('border-teal-500', 'bg-teal-50/60', 'border-amber-400');
+      opt.classList.add('border-slate-200', 'bg-white');
+    }
+  });
+
+  updateBatchStatusPreview();
+}
+
+function setBatchStatusPreset(fromVal, targetVal) {
+  const fromSel = document.getElementById('batch-status-from');
+  if (fromSel) fromSel.value = fromVal;
+  selectBatchTargetStatus(targetVal);
+}
+
+function updateBatchStatusPreview() {
+  const tripSel = document.getElementById('batch-status-trip-select');
+  const fromSel = document.getElementById('batch-status-from');
+  const previewText = document.getElementById('batch-status-preview-text');
+  const submitBtn = document.getElementById('batch-status-submit-btn');
+
+  if (!tripSel || !fromSel || !previewText) return;
+
+  const tripId = parseInt(tripSel.value, 10);
+  const fromStatus = fromSel.value;
+  const trip = state.trips.find(t => t.id === tripId);
+
+  if (!tripId) {
+    previewText.textContent = 'يرجى اختيار الرحلة أولاً';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    return;
+  }
+
+  const matchedCustomers = state.customers.filter(c => {
+    if (c.trip_id !== tripId) return false;
+    if (fromStatus === 'الكل') return true;
+    return c.status === fromStatus;
+  });
+
+  const count = matchedCustomers.length;
+  const tripName = trip ? trip.name : '';
+
+  if (count === 0) {
+    previewText.innerHTML = `<span class="text-amber-800">⚠️ لا يوجد أي ركاب ينطبق عليهم هذا الشرط في رحلة "${tripName}" (${fromStatus === 'الكل' ? 'الرحلة فارغة' : `لا يوجد ركاب بحالة ${fromStatus}`}).</span>`;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  } else {
+    previewText.innerHTML = `سيتم تعديل <span class="font-black text-sm text-teal-800 underline px-1">${count} راكب</span> في رحلة "${tripName}" من حالة <span class="bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded text-[11px]">${fromStatus}</span> إلى <span class="bg-teal-600 text-white px-1.5 py-0.5 rounded text-[11px]">${selectedBatchTarget}</span>.`;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+}
+
+async function executeBatchStatusUpdate() {
+  const tripSel = document.getElementById('batch-status-trip-select');
+  const fromSel = document.getElementById('batch-status-from');
+  const submitBtn = document.getElementById('batch-status-submit-btn');
+
+  if (!tripSel || !fromSel) return;
+
+  const tripId = parseInt(tripSel.value, 10);
+  const fromStatus = fromSel.value;
+  const targetStatus = selectedBatchTarget;
+  const trip = state.trips.find(t => t.id === tripId);
+  const tripName = trip ? trip.name : '';
+
+  const confirmMsg = `هل أنت متأكد من رغبتك بتعديل حالات الركاب في رحلة "${tripName}"؟\n- الحالة السابقة: ${fromStatus}\n- الحالة الجديدة: ${targetStatus}`;
+  if (!confirm(confirmMsg)) return;
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري التعديل...`;
+  }
+
+  try {
+    const payload = {
+      trip_id: tripId,
+      status: targetStatus,
+      previous_status: fromStatus === 'الكل' ? null : fromStatus
+    };
+
+    const res = await fetch(`${API_BASE}/customers/batch-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`تم بنجاح تعديل حالة ${data.updated_count} راكب إلى (${targetStatus})`, 'success');
+      
+      // Update local state customers
+      state.customers.forEach(c => {
+        if (c.trip_id === tripId) {
+          if (fromStatus === 'الكل' || c.status === fromStatus) {
+            c.status = targetStatus;
+          }
+        }
+      });
+
+      closeBatchStatusModal();
+      
+      // Refresh current view
+      if (state.currentView === 'customers') {
+        filterCustomers();
+      } else if (state.currentView === 'bus-supervisor') {
+        filterBusSupervisor();
+      } else if (state.currentView === 'manifest') {
+        renderSupervisorManifest(tripId);
+      } else {
+        renderDashboard();
+      }
+    } else {
+      showToast(data.detail || 'حدث خطأ أثناء تعديل الحالات', 'error');
+    }
+  } catch (err) {
+    console.error('Batch status update error:', err);
+    showToast('فشل الاتصال بالخادم لتحديث الحالات', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<i class="fa-solid fa-check-double"></i> <span>تطبيق التعديل على الركاب</span>`;
+    }
+  }
+}
+
+// ==================== MULTI-FORMULA WHATSAPP MODAL ==================== //
+
+let currentWaCustomer = null;
+let currentWaFormulaIdx = 1;
+
+function formatCustomerWhatsAppMessage(rawTemplate, cust) {
+  if (!rawTemplate) return '';
+  const s = state.settings || {};
+  let msg = rawTemplate;
+  msg = msg.replace(/{trip_name}/g, cust.trip_name || '');
+  msg = msg.replace(/{customer_name}|{name}/g, cust.full_name || '');
+  msg = msg.replace(/{seat_number}|{seat}/g, cust.seat_number ? String(cust.seat_number) : '-');
+  msg = msg.replace(/{pickup_point}|{pickup}/g, cust.pickup_point || '');
+  msg = msg.replace(/{hotel_name}|{hotel}/g, cust.hotel_name || '');
+  msg = msg.replace(/{room_number}|{room}/g, cust.room_number ? String(cust.room_number) : '-');
+  msg = msg.replace(/{ticket_price}|{price}/g, cust.ticket_price ? String(cust.ticket_price) : '0');
+  msg = msg.replace(/{phone}/g, cust.phone || '');
+  msg = msg.replace(/{national_id}/g, cust.national_id || '');
+  msg = msg.replace(/{org_name}/g, s.org_name || 'المنفذ المثالي');
+  return msg;
+}
+
+function openWhatsAppModal(customerId, formulaIdx) {
+  const cust = state.customers.find(c => c.id === customerId);
+  if (!cust) {
+    showToast('لم يتم العثور على بيانات العميل', 'error');
+    return;
+  }
+  currentWaCustomer = cust;
+
+  const busSelect = document.getElementById('bus-wa-template-select');
+  const activeDefault = state.settings?.whatsapp_active_template || '1';
+  currentWaFormulaIdx = formulaIdx || (busSelect ? parseInt(busSelect.value, 10) : parseInt(activeDefault, 10)) || 1;
+
+  // Fill passenger details banner
+  const nameEl = document.getElementById('wa-modal-cust-name');
+  const phoneEl = document.getElementById('wa-modal-cust-phone');
+  const tripEl = document.getElementById('wa-modal-cust-trip');
+  const seatEl = document.getElementById('wa-modal-cust-seat');
+  const pickupEl = document.getElementById('wa-modal-cust-pickup');
+  const idEl = document.getElementById('wa-modal-cust-id');
+
+  if (nameEl) nameEl.textContent = cust.full_name;
+  if (phoneEl) phoneEl.textContent = cust.phone;
+  if (tripEl) tripEl.textContent = cust.trip_name || 'الرحلة';
+  if (seatEl) seatEl.textContent = `مقعد: ${cust.seat_number || '-'}`;
+  if (pickupEl) pickupEl.textContent = cust.pickup_point || '-';
+  if (idEl) idEl.value = cust.id;
+
+  renderWhatsAppModalFormulaButtons();
+  updateWhatsAppModalPreview();
+
+  const modal = document.getElementById('whatsapp-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function renderWhatsAppModalFormulaButtons() {
+  const container = document.getElementById('wa-modal-formula-buttons');
+  if (!container) return;
+  const s = state.settings || {};
+
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const title = s[`whatsapp_title_${i}`] || (i === 1 ? 'صيغة 1 (الأساسية / تأكيد الحجز)' : `صيغة ${i}`);
+    const tpl = s[`whatsapp_template_${i}`] || (i === 1 ? (s.whatsapp_template || '') : '');
+    const isBlank = !tpl || !tpl.trim();
+    const isSelected = i === currentWaFormulaIdx;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.onclick = () => selectWhatsAppModalFormula(i);
+    btn.className = `p-2.5 rounded-xl border text-right transition flex items-center justify-between ${
+      isSelected
+        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500 font-black'
+        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold'
+    }`;
+
+    btn.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-black ${
+          isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+        }">${i}</span>
+        <span class="text-xs truncate max-w-[150px]">${title}</span>
+      </div>
+      ${isBlank ? '<span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-normal">فارغة</span>' : ''}
+    `;
+    container.appendChild(btn);
+  }
+}
+
+function selectWhatsAppModalFormula(idx) {
+  currentWaFormulaIdx = idx;
+  renderWhatsAppModalFormulaButtons();
+  updateWhatsAppModalPreview();
+}
+
+function updateWhatsAppModalPreview() {
+  if (!currentWaCustomer) return;
+  const s = state.settings || {};
+  const tpl = s[`whatsapp_template_${currentWaFormulaIdx}`] || (currentWaFormulaIdx === 1 ? (s.whatsapp_template || '') : '');
+  const previewBox = document.getElementById('wa-modal-preview-text');
+  if (previewBox) {
+    if (!tpl || !tpl.trim()) {
+      previewBox.value = '';
+      previewBox.placeholder = `هذه الصيغة (${currentWaFormulaIdx}) فارغة حالياً. يمكنك كتابة رسالة هنا مباشرة أو تعبئتها من قسم الإعدادات.`;
+    } else {
+      previewBox.value = formatCustomerWhatsAppMessage(tpl, currentWaCustomer);
+    }
+  }
+}
+
+function closeWhatsAppModal() {
+  const modal = document.getElementById('whatsapp-modal');
+  if (modal) modal.classList.add('hidden');
+  currentWaCustomer = null;
+}
+
+function copyWhatsAppModalText() {
+  const previewBox = document.getElementById('wa-modal-preview-text');
+  if (!previewBox || !previewBox.value.trim()) {
+    showToast('لا يوجد نص للنسخ', 'warning');
+    return;
+  }
+  navigator.clipboard.writeText(previewBox.value).then(() => {
+    showToast('تم نسخ نص الرسالة بنجاح', 'success');
+  }).catch(() => {
+    showToast('تعذر النسخ تلقائياً، يرجى النسخ يدوياً', 'warning');
+  });
+}
+
+function sendWhatsAppModalDirect() {
+  if (!currentWaCustomer) return;
+  const previewBox = document.getElementById('wa-modal-preview-text');
+  const msgText = previewBox ? previewBox.value.trim() : '';
+
+  let waPhone = currentWaCustomer.phone.replace(/\D/g, '');
+  if (waPhone.startsWith('05')) waPhone = '966' + waPhone.substring(1);
+  else if (waPhone.startsWith('5')) waPhone = '966' + waPhone;
+
+  const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(msgText)}`;
+  window.open(waLink, '_blank');
+  closeWhatsAppModal();
+}
+

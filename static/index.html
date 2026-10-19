@@ -492,6 +492,10 @@
                   <i class="fa-solid fa-user-plus"></i>
                   <span>تسجيل عميل جديد</span>
                 </button>
+                <button onclick="openBatchStatusModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="تعديل أو إعادة ضبط حالات الركاب دفعة واحدة">
+                  <i class="fa-solid fa-arrows-rotate text-teal-400"></i>
+                  <span>تعديل الحالات دفعة واحدة</span>
+                </button>
                 <button onclick="exportCurrentFilteredExcel()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
                   <i class="fa-solid fa-file-excel"></i>
                   <span>تصدير إكسل</span>
@@ -655,10 +659,29 @@
                 <button onclick="setBusStatusFilter('عدم الحضور')" id="bus-filter-noshow" class="bus-status-btn px-3 py-1 rounded-full font-bold bg-slate-100 text-rose-700 hover:bg-rose-50 transition">عدم الحضور (<span id="bus-count-noshow">0</span>)</button>
               </div>
 
-              <div class="flex items-center gap-2">
-                <button onclick="printBusSupervisorList()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition flex items-center gap-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <!-- Active WhatsApp Formula Selector -->
+                <div class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl">
+                  <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+                  <span class="text-[11px] font-bold text-emerald-950">صيغة الواتساب:</span>
+                  <select id="bus-wa-template-select" onchange="onActiveWhatsAppTemplateChange(this.value)" class="text-xs font-bold text-emerald-800 bg-transparent focus:outline-none cursor-pointer">
+                    <option value="1">الصيغة 1</option>
+                    <option value="2">الصيغة 2</option>
+                    <option value="3">الصيغة 3</option>
+                    <option value="4">الصيغة 4</option>
+                    <option value="5">الصيغة 5</option>
+                  </select>
+                </div>
+
+                <!-- Batch Status Update Button -->
+                <button onclick="openBatchStatusModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="تعديل أو إعادة ضبط حالات الركاب">
+                  <i class="fa-solid fa-arrows-rotate text-teal-400"></i>
+                  <span>إعادة ضبط الحالات</span>
+                </button>
+
+                <button onclick="printBusSupervisorList()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition flex items-center gap-1 text-xs">
                   <i class="fa-solid fa-print"></i>
-                  <span>طباعة قائمة الباص</span>
+                  <span>طباعة القائمة</span>
                 </button>
               </div>
             </div>
@@ -1195,17 +1218,126 @@
                 </div>
               </div>
 
-              <!-- Automated WhatsApp Template -->
+              <!-- Multi-Template WhatsApp System (5 Formulas) -->
               <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
-                  <i class="fa-brands fa-whatsapp text-emerald-600 text-base"></i>
-                  قالب رسالة الواتساب التلقائية لعملاء (عدم الحضور)
-                </h3>
-                <p class="text-xs text-slate-500 mb-3">يتم استخدام هذه الرسالة عند الضغط على أيقونة الواتساب للعميل غير الحاضر</p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <i class="fa-brands fa-whatsapp text-emerald-600 text-lg"></i>
+                      قوالب وصيغ رسائل الواتساب المتعددة (5 صيغ قابلة للتبديل)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">يمكنك تجهيز حتى 5 صيغ مختلفة والتنقل بينها بكل سلاسة عند مراسلة الركاب</p>
+                  </div>
+                  <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shrink-0">
+                    <span class="text-xs font-bold text-slate-600">الصيغة النشطة:</span>
+                    <select id="set-whatsapp-active-select" onchange="switchSettingsWhatsAppTab(this.value)" class="text-xs font-bold text-emerald-700 bg-transparent focus:outline-none cursor-pointer">
+                      <option value="1">الصيغة 1</option>
+                      <option value="2">الصيغة 2</option>
+                      <option value="3">الصيغة 3</option>
+                      <option value="4">الصيغة 4</option>
+                      <option value="5">الصيغة 5</option>
+                    </select>
+                  </div>
+                </div>
 
-                <textarea id="set-whatsapp-template" rows="3"
-                  class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
-                <p class="text-[11px] text-slate-400 mt-1">المتغيرات المتاحة: {trip_name} اسم الرحلة، {pickup_point} نقطة الصعود</p>
+                <!-- Tabs navigation for 5 formulas -->
+                <div class="flex items-center gap-1.5 border-b border-slate-200 pb-2 mb-4 overflow-x-auto">
+                  <button type="button" onclick="switchSettingsWhatsAppTab('1')" id="wa-tab-btn-1" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-xs transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-white"></span>
+                    <span id="wa-tab-title-badge-1">الصيغة 1 (الرئيسية)</span>
+                  </button>
+                  <button type="button" onclick="switchSettingsWhatsAppTab('2')" id="wa-tab-btn-2" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span id="wa-tab-title-badge-2">الصيغة 2</span>
+                  </button>
+                  <button type="button" onclick="switchSettingsWhatsAppTab('3')" id="wa-tab-btn-3" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span id="wa-tab-title-badge-3">الصيغة 3</span>
+                  </button>
+                  <button type="button" onclick="switchSettingsWhatsAppTab('4')" id="wa-tab-btn-4" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span id="wa-tab-title-badge-4">الصيغة 4</span>
+                  </button>
+                  <button type="button" onclick="switchSettingsWhatsAppTab('5')" id="wa-tab-btn-5" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span id="wa-tab-title-badge-5">الصيغة 5</span>
+                  </button>
+                </div>
+
+                <!-- Hidden legacy input for backwards compatibility -->
+                <input type="hidden" id="set-whatsapp-template">
+
+                <!-- Formula 1 Panel -->
+                <div id="wa-panel-1" class="wa-template-panel space-y-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 1:</label>
+                    <input type="text" id="set-whatsapp-title-1" placeholder="مثال: الصيغة الرئيسية لتأكيد الحضور" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 1:</label>
+                    <textarea id="set-whatsapp-template-1" rows="3" class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <!-- Formula 2 Panel -->
+                <div id="wa-panel-2" class="wa-template-panel space-y-3 hidden">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 2:</label>
+                    <input type="text" id="set-whatsapp-title-2" placeholder="اكتب عنواناً للصيغة (مثال: تذكير بموعد انطلاق الرحلة)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 2:</label>
+                    <textarea id="set-whatsapp-template-2" rows="3" placeholder="اكتب نص الصيغة الثانية هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <!-- Formula 3 Panel -->
+                <div id="wa-panel-3" class="wa-template-panel space-y-3 hidden">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 3:</label>
+                    <input type="text" id="set-whatsapp-title-3" placeholder="اكتب عنواناً للصيغة (مثال: تنبيه عدم الحضور في نقطة التجمع)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 3:</label>
+                    <textarea id="set-whatsapp-template-3" rows="3" placeholder="اكتب نص الصيغة الثالثة هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <!-- Formula 4 Panel -->
+                <div id="wa-panel-4" class="wa-template-panel space-y-3 hidden">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 4:</label>
+                    <input type="text" id="set-whatsapp-title-4" placeholder="اكتب عنواناً للصيغة (مثال: تعليمات السكن والفندق وتوزيع الغرف)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 4:</label>
+                    <textarea id="set-whatsapp-template-4" rows="3" placeholder="اكتب نص الصيغة الرابعة هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <!-- Formula 5 Panel -->
+                <div id="wa-panel-5" class="wa-template-panel space-y-3 hidden">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 5:</label>
+                    <input type="text" id="set-whatsapp-title-5" placeholder="اكتب عنواناً للصيغة (مثال: رسالة خاصة أو اعتذار)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 5:</label>
+                    <textarea id="set-whatsapp-template-5" rows="3" placeholder="اكتب نص الصيغة الخامسة هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <div class="mt-3.5 p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-200/60 text-[11px] text-emerald-950 leading-relaxed">
+                  <span class="font-bold">المتغيرات الذكية التي تُستبدل تلقائياً ببيانات العميل عند الإرسال:</span>
+                  <div class="flex flex-wrap gap-1.5 mt-1">
+                    <code class="bg-white px-2 py-0.5 rounded border border-emerald-300 font-mono text-[11px] font-bold text-emerald-800">{name} اسم العميل</code>
+                    <code class="bg-white px-2 py-0.5 rounded border border-emerald-300 font-mono text-[11px] font-bold text-emerald-800">{trip_name} اسم الرحلة</code>
+                    <code class="bg-white px-2 py-0.5 rounded border border-emerald-300 font-mono text-[11px] font-bold text-emerald-800">{pickup_point} نقطة الصعود</code>
+                    <code class="bg-white px-2 py-0.5 rounded border border-emerald-300 font-mono text-[11px] font-bold text-emerald-800">{seat_number} رقم المقعد</code>
+                    <code class="bg-white px-2 py-0.5 rounded border border-emerald-300 font-mono text-[11px] font-bold text-emerald-800">{hotel_name} اسم الفندق</code>
+                    <code class="bg-white px-2 py-0.5 rounded border border-emerald-300 font-mono text-[11px] font-bold text-emerald-800">{remaining_balance} المبلغ المتبقي</code>
+                  </div>
+                </div>
               </div>
 
               <div class="flex justify-end">
@@ -1642,10 +1774,180 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: BATCH STATUS UPDATE ==================== -->
+  <div id="batch-status-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-auto fade-in">
+      <div class="p-5 bg-gradient-to-r from-slate-900 to-navy-900 text-white flex items-center justify-between">
+        <h3 class="text-base font-bold flex items-center gap-2">
+          <i class="fa-solid fa-arrows-rotate text-teal-400"></i>
+          إعادة ضبط وتعديل حالات الركاب دفعة واحدة
+        </h3>
+        <button onclick="closeBatchStatusModal()" class="text-slate-300 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        
+        <!-- Trip Selection -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">الرحلة المستهدفة:</label>
+          <select id="batch-status-trip-select" onchange="updateBatchStatusPreview()" class="w-full p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 font-bold text-navy-900">
+          </select>
+        </div>
+
+        <!-- Filter Current Status -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">تعديل ركاب حالتهم الحالية:</label>
+          <select id="batch-status-from" onchange="updateBatchStatusPreview()" class="w-full p-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 font-bold">
+            <option value="الكل">جميع الركاب في الرحلة (مهما كانت حالتهم)</option>
+            <option value="مؤكد">فقط الركاب الحاليين (مؤكد)</option>
+            <option value="مسجل">فقط الركاب الحاليين (مسجل)</option>
+            <option value="عدم الحضور">فقط الركاب الحاليين (عدم الحضور)</option>
+            <option value="ملغي">فقط الركاب الحاليين (ملغي)</option>
+          </select>
+        </div>
+
+        <!-- Target Status to convert to -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-2">تحويلهم إلى الحالة الجديدة:</label>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="batch-status-opt flex items-center gap-2.5 p-3 rounded-2xl border-2 border-amber-400 bg-amber-50/60 cursor-pointer hover:bg-amber-100/60 transition" onclick="selectBatchTargetStatus('مسجل')">
+              <input type="radio" name="batch-target-status" value="مسجل" checked class="w-4 h-4 text-amber-600 focus:ring-amber-500">
+              <div>
+                <span class="block font-black text-amber-900 text-xs">مسجل</span>
+                <span class="text-[10px] text-amber-700">تجهيز مبدئي / قيد التأكيد</span>
+              </div>
+            </label>
+
+            <label class="batch-status-opt flex items-center gap-2.5 p-3 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:bg-emerald-50/50 transition" onclick="selectBatchTargetStatus('مؤكد')">
+              <input type="radio" name="batch-target-status" value="مؤكد" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <div>
+                <span class="block font-black text-emerald-900 text-xs">مؤكد</span>
+                <span class="text-[10px] text-emerald-700">تأكيد الركاب والحضور</span>
+              </div>
+            </label>
+
+            <label class="batch-status-opt flex items-center gap-2.5 p-3 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:bg-rose-50/50 transition" onclick="selectBatchTargetStatus('عدم الحضور')">
+              <input type="radio" name="batch-target-status" value="عدم الحضور" class="w-4 h-4 text-rose-600 focus:ring-rose-500">
+              <div>
+                <span class="block font-black text-rose-900 text-xs">عدم الحضور</span>
+                <span class="text-[10px] text-rose-700">تثبيت غياب عن الباص</span>
+              </div>
+            </label>
+
+            <label class="batch-status-opt flex items-center gap-2.5 p-3 rounded-2xl border-2 border-slate-200 bg-white cursor-pointer hover:bg-slate-100 transition" onclick="selectBatchTargetStatus('ملغي')">
+              <input type="radio" name="batch-target-status" value="ملغي" class="w-4 h-4 text-slate-600 focus:ring-slate-500">
+              <div>
+                <span class="block font-black text-slate-800 text-xs">ملغي</span>
+                <span class="text-[10px] text-slate-600">إلغاء الحجز للراكب</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Quick Preset Actions -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+          <span class="block font-bold text-slate-600 mb-1.5 text-[11px]">اختصارات سريعة بضغطة واحدة:</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setBatchStatusPreset('الكل', 'مسجل')" class="px-2.5 py-1 bg-white hover:bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold text-amber-900 transition shadow-xs">
+              ⚡ إعادة ضبط الكل إلى (مسجل)
+            </button>
+            <button type="button" onclick="setBatchStatusPreset('الكل', 'مؤكد')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-emerald-300 rounded-lg text-[11px] font-bold text-emerald-900 transition shadow-xs">
+              ⚡ تأكيد حضور الجميع (مؤكد)
+            </button>
+            <button type="button" onclick="setBatchStatusPreset('مؤكد', 'مسجل')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-800 transition shadow-xs">
+              ⚡ تحويل (المؤكد) إلى (مسجل)
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Counter Preview -->
+        <div id="batch-status-preview-box" class="p-3 bg-teal-50 border border-teal-200 rounded-2xl text-teal-900 font-bold text-xs flex items-center gap-2">
+          <i class="fa-solid fa-circle-info text-teal-600 text-sm"></i>
+          <span id="batch-status-preview-text">جاري احتساب عدد الركاب المستهدفين...</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeBatchStatusModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold">إلغاء</button>
+          <button type="button" onclick="executeBatchStatusUpdate()" id="batch-status-submit-btn" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-check-double"></i>
+            <span>تطبيق التعديل على الركاب</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: WHATSAPP FORMULA SENDER ==================== -->
+  <div id="whatsapp-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-auto fade-in">
+      <div class="p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+        <h3 class="text-base font-bold flex items-center gap-2">
+          <i class="fa-brands fa-whatsapp text-lg"></i>
+          مراسلة العميل عبر الواتساب (اختيار الصيغة)
+        </h3>
+        <button onclick="closeWhatsAppModal()" class="text-emerald-100 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="wa-modal-cust-id">
+
+        <!-- Passenger Info Banner -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <div class="flex items-center justify-between mb-1">
+            <span id="wa-modal-cust-name" class="font-black text-slate-900 text-sm">اسم الراكب</span>
+            <span id="wa-modal-cust-phone" class="font-mono font-bold text-emerald-700 text-xs">05xxxxxxxx</span>
+          </div>
+          <div class="text-[11px] text-slate-500 flex items-center gap-2">
+            <span id="wa-modal-cust-trip">الرحلة</span>
+            <span>•</span>
+            <span id="wa-modal-cust-seat">مقعد: -</span>
+            <span>•</span>
+            <span id="wa-modal-cust-pickup">نقطة الصعود</span>
+          </div>
+        </div>
+
+        <!-- Formula Switcher Buttons -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">اختر صيغة الرسالة التي ترغب بإرسالها:</label>
+          <div id="wa-modal-formula-buttons" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          </div>
+        </div>
+
+        <!-- Message Preview & Quick Edit -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block font-bold text-slate-700">معاينة نص الرسالة قبل الإرسال:</label>
+            <button type="button" onclick="copyWhatsAppModalText()" class="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-copy"></i>
+              <span>نسخ النص</span>
+            </button>
+          </div>
+          <textarea id="wa-modal-preview-text" rows="5" class="w-full p-3 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none font-medium leading-relaxed"></textarea>
+        </div>
+
+        <!-- Send Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeWhatsAppModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold">إلغاء</button>
+          <button type="button" onclick="sendWhatsAppModalDirect()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2">
+            <i class="fa-brands fa-whatsapp text-base"></i>
+            <span>فتح الواتساب والإرسال الآن</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261007_startup_instant_v8"></script>
+  <script src="/static/app.js?v=20261019_v9_templates_batch"></script>
 </body>
 </html>
