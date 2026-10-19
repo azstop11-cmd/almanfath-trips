@@ -1271,7 +1271,7 @@
                 <div id="wa-panel-1" class="wa-template-panel space-y-3">
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 1:</label>
-                    <input type="text" id="set-whatsapp-title-1" placeholder="مثال: الصيغة الرئيسية لتأكيد الحضور" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                    <input type="text" id="set-whatsapp-title-1" oninput="onSettingsWhatsAppTitleInput(1, this.value)" placeholder="مثال: الصيغة الرئيسية لتأكيد الحضور" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 1:</label>
@@ -1283,7 +1283,7 @@
                 <div id="wa-panel-2" class="wa-template-panel space-y-3 hidden">
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 2:</label>
-                    <input type="text" id="set-whatsapp-title-2" placeholder="اكتب عنواناً للصيغة (مثال: تذكير بموعد انطلاق الرحلة)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                    <input type="text" id="set-whatsapp-title-2" oninput="onSettingsWhatsAppTitleInput(2, this.value)" placeholder="اكتب عنواناً للصيغة (مثال: تذكير بموعد انطلاق الرحلة)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 2:</label>
@@ -1295,7 +1295,7 @@
                 <div id="wa-panel-3" class="wa-template-panel space-y-3 hidden">
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 3:</label>
-                    <input type="text" id="set-whatsapp-title-3" placeholder="اكتب عنواناً للصيغة (مثال: تنبيه عدم الحضور في نقطة التجمع)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                    <input type="text" id="set-whatsapp-title-3" oninput="onSettingsWhatsAppTitleInput(3, this.value)" placeholder="اكتب عنواناً للصيغة (مثال: تنبيه عدم الحضور في نقطة التجمع)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 3:</label>
@@ -1307,7 +1307,7 @@
                 <div id="wa-panel-4" class="wa-template-panel space-y-3 hidden">
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 4:</label>
-                    <input type="text" id="set-whatsapp-title-4" placeholder="اكتب عنواناً للصيغة (مثال: تعليمات السكن والفندق وتوزيع الغرف)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                    <input type="text" id="set-whatsapp-title-4" oninput="onSettingsWhatsAppTitleInput(4, this.value)" placeholder="اكتب عنواناً للصيغة (مثال: تعليمات السكن والفندق وتوزيع الغرف)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 4:</label>
@@ -1319,7 +1319,7 @@
                 <div id="wa-panel-5" class="wa-template-panel space-y-3 hidden">
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 5:</label>
-                    <input type="text" id="set-whatsapp-title-5" placeholder="اكتب عنواناً للصيغة (مثال: رسالة خاصة أو اعتذار)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                    <input type="text" id="set-whatsapp-title-5" oninput="onSettingsWhatsAppTitleInput(5, this.value)" placeholder="اكتب عنواناً للصيغة (مثال: رسالة خاصة أو اعتذار)" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 5:</label>
@@ -1948,6 +1948,6 @@
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261019_v9_templates_batch"></script>
+  <script src="/static/app.js?v=20261019_v10_wa_tabs_fix"></script>
 </body>
 </html>

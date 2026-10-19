@@ -281,18 +281,23 @@ function applySettingsToUI() {
   // Multi-formula WhatsApp settings (1 to 5)
   const defaultFormula1 = "السلام عليكم ورحمة الله وبركاته، معك مشرف رحلة [{trip_name}] من المنفذ المثالي. نود الاطمئنان والتأكيد على موعد انطلاق الرحلة من نقطة {pickup_point}.";
   const formulaDefaults = [
-    { idx: 1, title: 'صيغة 1 (الأساسية / تأكيد الحجز)', tpl: s.whatsapp_template_1 || s.whatsapp_template || defaultFormula1 },
-    { idx: 2, title: 'صيغة 2 (تذكير بالموعد)', tpl: s.whatsapp_template_2 || '' },
-    { idx: 3, title: 'صيغة 3 (انطلاق الباص)', tpl: s.whatsapp_template_3 || '' },
-    { idx: 4, title: 'صيغة 4 (استبيان رأي)', tpl: s.whatsapp_template_4 || '' },
-    { idx: 5, title: 'صيغة 5 (رسالة مخصصة)', tpl: s.whatsapp_template_5 || '' }
+    { idx: 1, title: 'الصيغة 1 (الرئيسية)', tpl: s.whatsapp_template_1 || s.whatsapp_template || defaultFormula1 },
+    { idx: 2, title: 'الصيغة 2', tpl: s.whatsapp_template_2 || '' },
+    { idx: 3, title: 'الصيغة 3', tpl: s.whatsapp_template_3 || '' },
+    { idx: 4, title: 'الصيغة 4', tpl: s.whatsapp_template_4 || '' },
+    { idx: 5, title: 'الصيغة 5', tpl: s.whatsapp_template_5 || '' }
   ];
 
   formulaDefaults.forEach(f => {
     const titleEl = document.getElementById(`set-whatsapp-title-${f.idx}`);
     const tplEl = document.getElementById(`set-whatsapp-template-${f.idx}`);
+    const badgeEl = document.getElementById(`wa-tab-title-badge-${f.idx}`);
+    const currentTitle = s[`whatsapp_title_${f.idx}`] !== undefined ? s[`whatsapp_title_${f.idx}`] : f.title;
     if (titleEl) {
-      titleEl.value = s[`whatsapp_title_${f.idx}`] !== undefined ? s[`whatsapp_title_${f.idx}`] : f.title;
+      titleEl.value = currentTitle;
+    }
+    if (badgeEl && currentTitle) {
+      badgeEl.textContent = currentTitle;
     }
     if (tplEl) {
       tplEl.value = s[`whatsapp_template_${f.idx}`] !== undefined ? s[`whatsapp_template_${f.idx}`] : f.tpl;
@@ -304,6 +309,7 @@ function applySettingsToUI() {
     activeSel.value = s.whatsapp_active_template || '1';
   }
 
+  switchSettingsWhatsAppTab(s.whatsapp_active_template || 1);
   populateWhatsAppFormulaSelectors();
 
   if (document.getElementById('mf-org-name') && s.branch_name) {
@@ -312,25 +318,39 @@ function applySettingsToUI() {
 }
 
 function switchSettingsWhatsAppTab(tabIdx) {
+  const targetIdx = parseInt(tabIdx, 10) || 1;
   for (let i = 1; i <= 5; i++) {
     const btn = document.getElementById(`wa-tab-btn-${i}`);
     const panel = document.getElementById(`wa-panel-${i}`);
     if (btn) {
-      if (i === tabIdx) {
-        btn.classList.add('bg-white', 'text-emerald-700', 'shadow-xs', 'font-black');
-        btn.classList.remove('text-slate-600', 'hover:bg-white/60');
+      const dot = btn.querySelector('span');
+      if (i === targetIdx) {
+        btn.className = 'wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-xs transition flex items-center gap-1.5';
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-white';
       } else {
-        btn.classList.remove('bg-white', 'text-emerald-700', 'shadow-xs', 'font-black');
-        btn.classList.add('text-slate-600', 'hover:bg-white/60');
+        btn.className = 'wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200';
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-slate-300';
       }
     }
     if (panel) {
-      if (i === tabIdx) {
+      if (i === targetIdx) {
         panel.classList.remove('hidden');
       } else {
         panel.classList.add('hidden');
       }
     }
+  }
+
+  const activeSel = document.getElementById('set-whatsapp-active-select');
+  if (activeSel && activeSel.value !== String(targetIdx)) {
+    activeSel.value = String(targetIdx);
+  }
+}
+
+function onSettingsWhatsAppTitleInput(idx, val) {
+  const badgeEl = document.getElementById(`wa-tab-title-badge-${idx}`);
+  if (badgeEl) {
+    badgeEl.textContent = val.trim() || `الصيغة ${idx}`;
   }
 }
 
