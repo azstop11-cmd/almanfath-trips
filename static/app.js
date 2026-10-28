@@ -57,42 +57,32 @@ if (document.readyState === 'loading') {
   bootSystem();
 }
 
-function checkAuth() {
+async function checkAuth() {
   const savedUser = localStorage.getItem('manfath_user');
   const savedToken = localStorage.getItem('manfath_token');
 
-  if (savedUser && savedToken) {
+  // Reject old auto-login tokens or missing tokens
+  if (savedUser && savedToken && savedToken.startsWith('session-')) {
     try {
-      state.currentUser = JSON.parse(savedUser);
-      state.token = savedToken;
-      showAppShell();
-      initApp();
-      return;
+      const verifyRes = await fetch(`${API_BASE}/auth/verify?token=${encodeURIComponent(savedToken)}`);
+      if (verifyRes.ok) {
+        state.currentUser = JSON.parse(savedUser);
+        state.token = savedToken;
+        showAppShell();
+        initApp();
+        return;
+      }
     } catch (e) {
-      console.warn('Failed parsing saved user', e);
+      console.warn('Auth verification warning:', e);
     }
   }
 
-  // Auto-login as default supervisor so every device has immediate access without typing credentials!
-  autoLoginDefaultUser();
-}
-
-function autoLoginDefaultUser() {
-  const defaultUser = {
-    id: 1,
-    username: "admin",
-    full_name: "المشرف العام - المنفذ المثالي",
-    role: "admin",
-    branch: "الفرع الرئيسي"
-  };
-  const defaultToken = "token_admin_auto";
-  state.currentUser = defaultUser;
-  state.token = defaultToken;
-  localStorage.setItem('manfath_user', JSON.stringify(defaultUser));
-  localStorage.setItem('manfath_token', defaultToken);
-
-  showAppShell();
-  initApp();
+  // Clear invalid or expired session and require password login
+  localStorage.removeItem('manfath_user');
+  localStorage.removeItem('manfath_token');
+  state.currentUser = null;
+  state.token = null;
+  showLoginView();
 }
 
 function showLoginView() {
@@ -100,6 +90,11 @@ function showLoginView() {
   if (loginView) loginView.classList.remove('hidden');
   const appShell = document.getElementById('app-shell');
   if (appShell) appShell.classList.add('hidden');
+  const passInput = document.getElementById('login-password');
+  if (passInput) {
+    passInput.value = '';
+    setTimeout(() => passInput.focus(), 50);
+  }
 }
 
 function showAppShell() {
@@ -184,9 +179,15 @@ async function initApp() {
 
 async function handleLogin(e) {
   e.preventDefault();
-  const username = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value.trim();
-  const remember = document.getElementById('remember-me').checked;
+  const username = (document.getElementById('login-username')?.value || 'admin').trim();
+  const password = (document.getElementById('login-password')?.value || '').trim();
+  const remember = document.getElementById('remember-me')?.checked;
+  const submitBtn = document.getElementById('login-submit-btn');
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري التحقق...</span>`;
+  }
 
   try {
     const res = await fetch(`${API_BASE}/auth/login`, {
@@ -197,7 +198,7 @@ async function handleLogin(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || 'فشل تسجيل الدخول');
+      throw new Error(data.detail || 'كلمة المرور غير صحيحة');
     }
 
     state.currentUser = data.user;
@@ -206,6 +207,9 @@ async function handleLogin(e) {
     if (remember) {
       localStorage.setItem('manfath_user', JSON.stringify(data.user));
       localStorage.setItem('manfath_token', data.token);
+    } else {
+      localStorage.removeItem('manfath_user');
+      localStorage.removeItem('manfath_token');
     }
 
     showToast(`مرحباً بك ${data.user.full_name}`, 'success');
@@ -213,21 +217,12 @@ async function handleLogin(e) {
     initApp();
   } catch (err) {
     showToast(err.message, 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>تسجيل الدخول</span> <i class="fa-solid fa-arrow-left"></i>`;
+    }
   }
-}
-
-function quickLogin(role) {
-  if (role === 'admin') {
-    document.getElementById('login-username').value = 'admin';
-    document.getElementById('login-password').value = '123456';
-  } else if (role === 'shaqra') {
-    document.getElementById('login-username').value = 'shaqra';
-    document.getElementById('login-password').value = '123456';
-  } else if (role === 'dawadmi') {
-    document.getElementById('login-username').value = 'dawadmi';
-    document.getElementById('login-password').value = '123456';
-  }
-  document.getElementById('login-form').dispatchEvent(new Event('submit'));
 }
 
 function handleLogout() {
@@ -235,7 +230,7 @@ function handleLogout() {
   localStorage.removeItem('manfath_token');
   state.currentUser = null;
   state.token = null;
-  showToast('تم تسجيل الخروج بنجاح', 'info');
+  showToast('تم قفل النظام وتسجيل الخروج بنجاح', 'info');
   showLoginView();
 }
 
@@ -248,6 +243,94 @@ function togglePasswordVisibility() {
   } else {
     passInput.type = 'password';
     eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+
+function toggleFieldPassword(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const icon = btnEl ? btnEl.querySelector('i') : null;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    input.type = 'password';
+    if (icon) icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+
+function openChangePasswordSection() {
+  navigate('settings');
+  setTimeout(() => {
+    const sec = document.getElementById('security-password-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const currInput = document.getElementById('sec-current-password');
+    if (currInput) currInput.focus();
+  }, 150);
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const currentPassword = (document.getElementById('sec-current-password')?.value || '').trim();
+  const newPassword = (document.getElementById('sec-new-password')?.value || '').trim();
+  const confirmPassword = (document.getElementById('sec-confirm-password')?.value || '').trim();
+  const submitBtn = document.getElementById('change-password-submit-btn');
+
+  if (!currentPassword || !newPassword) {
+    showToast('يرجى إدخال كلمة المرور الحالية والجديدة', 'warning');
+    return;
+  }
+
+  if (newPassword.length < 4) {
+    showToast('يجب أن تتكون كلمة المرور الجديدة من 4 خانات على الأقل', 'warning');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showToast('كلمة المرور الجديدة وتأكيدها غير متطابقين!', 'error');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري تحديث كلمة المرور...</span>`;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'فشل تغيير كلمة المرور');
+    }
+
+    // Update current device token so user stays logged in with the new password
+    if (data.token) {
+      state.token = data.token;
+      if (localStorage.getItem('manfath_token')) {
+        localStorage.setItem('manfath_token', data.token);
+      }
+    }
+
+    document.getElementById('sec-current-password').value = '';
+    document.getElementById('sec-new-password').value = '';
+    document.getElementById('sec-confirm-password').value = '';
+
+    showToast('تم تغيير كلمة المرور وحفظها بنجاح تام!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<i class="fa-solid fa-key"></i> <span>تحديث وحفظ كلمة المرور الجديدة</span>`;
+    }
   }
 }
 

@@ -3,6 +3,7 @@ import io
 import re
 import csv
 import json
+import hashlib
 import sqlite3
 import datetime
 import urllib.parse
@@ -179,30 +180,93 @@ class ImportCommitRequest(BaseModel):
 
 # ----------------- Auth API ----------------- #
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+def _make_auth_token(user_id: int, password: str) -> str:
+    sig = hashlib.sha256(f"manfath_secret_{user_id}_{password}".encode("utf-8")).hexdigest()[:24]
+    return f"session-{user_id}-{sig}"
+
+def _get_system_password(cursor: sqlite3.Cursor) -> str:
+    cursor.execute("SELECT value FROM settings WHERE key = 'system_password'")
+    row = cursor.fetchone()
+    if row and row["value"]:
+        return row["value"]
+    cursor.execute("SELECT password FROM users WHERE username = 'admin'")
+    u_row = cursor.fetchone()
+    if u_row and u_row["password"]:
+        return u_row["password"]
+    return "123456"
+
 @app.post("/api/auth/login")
 def login(req: LoginRequest, conn: sqlite3.Connection = Depends(get_db)):
     cursor = conn.cursor()
-    cursor.execute("SELECT id, username, full_name, role, branch FROM users WHERE username = ? AND password = ?", (req.username, req.password))
+    sys_pass = _get_system_password(cursor)
+    entered_pass = req.password.strip()
+    entered_user = (req.username or "admin").strip()
+
+    if entered_pass != sys_pass:
+        raise HTTPException(status_code=401, detail="كلمة المرور غير صحيحة")
+
+    cursor.execute("SELECT id, username, full_name, role, branch FROM users WHERE username = ?", (entered_user,))
     user = cursor.fetchone()
-    if not user:
-        if req.username == "admin" and req.password == "123456":
-            return {
-                "success": True,
-                "user": {
-                    "id": 1,
-                    "username": "admin",
-                    "full_name": "المشرف العام - المنفذ المثالي",
-                    "role": "admin",
-                    "branch": "الفرع الرئيسي"
-                },
-                "token": "demo-token-manfath-123456"
-            }
-        raise HTTPException(status_code=401, detail="اسم المستخدم أو كلمة المرور غير صحيحة")
-    
+    if user:
+        user_dict = dict(user)
+    else:
+        user_dict = {
+            "id": 1,
+            "username": entered_user or "admin",
+            "full_name": "المشرف العام - المنفذ المثالي",
+            "role": "admin",
+            "branch": "الفرع الرئيسي"
+        }
+
     return {
         "success": True,
-        "user": dict(user),
-        "token": f"session-{user['id']}-auth-token"
+        "user": user_dict,
+        "token": _make_auth_token(user_dict["id"], sys_pass)
+    }
+
+@app.get("/api/auth/verify")
+def verify_auth(token: str = Query(""), conn: sqlite3.Connection = Depends(get_db)):
+    if not token or not token.startswith("session-"):
+        raise HTTPException(status_code=401, detail="غير مصرح")
+    cursor = conn.cursor()
+    sys_pass = _get_system_password(cursor)
+    parts = token.split("-")
+    if len(parts) != 3:
+        raise HTTPException(status_code=401, detail="رمز الجلسة غير صالح")
+    try:
+        uid = int(parts[1])
+    except ValueError:
+        raise HTTPException(status_code=401, detail="رمز الجلسة غير صالح")
+    if token != _make_auth_token(uid, sys_pass):
+        raise HTTPException(status_code=401, detail="انتهت صلاحية الجلسة أو تم تغيير كلمة المرور")
+    return {"valid": True}
+
+@app.post("/api/auth/change-password")
+def change_password(req: ChangePasswordRequest, conn: sqlite3.Connection = Depends(get_db)):
+    cursor = conn.cursor()
+    sys_pass = _get_system_password(cursor)
+    if req.current_password.strip() != sys_pass:
+        raise HTTPException(status_code=400, detail="كلمة المرور الحالية غير صحيحة")
+    new_pass = req.new_password.strip()
+    if len(new_pass) < 4:
+        raise HTTPException(status_code=400, detail="يجب أن تتكون كلمة المرور الجديدة من 4 خانات على الأقل")
+
+    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('system_password', ?)", (new_pass,))
+    cursor.execute("UPDATE users SET password = ?", (new_pass,))
+    conn.commit()
+    try:
+        backup_manager.create_snapshot(reason="password_change")
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "message": "تم تغيير كلمة المرور بنجاح",
+        "token": _make_auth_token(1, new_pass)
     }
 
 # ----------------- Settings API ----------------- #
@@ -210,7 +274,7 @@ def login(req: LoginRequest, conn: sqlite3.Connection = Depends(get_db)):
 @app.get("/api/settings")
 def get_settings(conn: sqlite3.Connection = Depends(get_db)):
     cursor = conn.cursor()
-    cursor.execute("SELECT key, value FROM settings")
+    cursor.execute("SELECT key, value FROM settings WHERE key != 'system_password'")
     rows = cursor.fetchall()
     return {row["key"]: row["value"] for row in rows}
 

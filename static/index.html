@@ -93,14 +93,14 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور للدخول</label>
             <div class="relative">
               <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400">
                 <i class="fa-solid fa-lock"></i>
               </span>
-              <input type="password" id="login-password" value="123456" required
+              <input type="password" id="login-password" value="" required autofocus
                 class="w-full pr-10 pl-10 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none transition"
-                placeholder="أدخل كلمة المرور">
+                placeholder="أدخل كلمة المرور للدخول للنظام">
               <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-slate-600">
                 <i id="password-eye-icon" class="fa-solid fa-eye"></i>
               </button>
@@ -110,32 +110,20 @@
           <div class="flex items-center justify-between text-xs pt-1">
             <label class="flex items-center gap-2 cursor-pointer text-slate-600">
               <input type="checkbox" id="remember-me" checked class="rounded text-brand-600 focus:ring-brand-500">
-              <span>تذكر تسجيل الدخول</span>
+              <span>تذكر تسجيل الدخول على هذا الجهاز</span>
             </label>
-            <span class="text-brand-600 font-semibold cursor-pointer hover:underline" onclick="showToast('يمكنك الدخول بكلمة المرور 123456', 'info')">مساعدة المشرف</span>
+            <span class="text-slate-400 font-medium flex items-center gap-1">
+              <i class="fa-solid fa-shield-halved text-brand-600"></i>
+              <span>نظام محمي</span>
+            </span>
           </div>
 
-          <button type="submit"
+          <button type="submit" id="login-submit-btn"
             class="w-full py-3 px-4 bg-gradient-to-r from-brand-600 to-navy-800 hover:from-brand-700 hover:to-navy-900 text-white font-bold rounded-xl shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition flex items-center justify-center gap-2">
             <span>تسجيل الدخول</span>
             <i class="fa-solid fa-arrow-left"></i>
           </button>
         </form>
-
-        <div class="mt-6 pt-5 border-t border-slate-100">
-          <p class="text-xs text-center text-slate-400 mb-2 font-medium">تسجيل سريع للتجربة:</p>
-          <div class="grid grid-cols-3 gap-2">
-            <button onclick="quickLogin('admin')" class="py-1.5 px-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 text-center">
-              مشرف عام
-            </button>
-            <button onclick="quickLogin('shaqra')" class="py-1.5 px-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 text-center">
-              مشرف شقراء
-            </button>
-            <button onclick="quickLogin('dawadmi')" class="py-1.5 px-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 text-center">
-              مشرف الدوادمي
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -196,11 +184,14 @@
               <span id="sync-status-text">تزامن فوري متصل</span>
             </div>
 
-            <div class="flex items-center gap-2 border-r border-slate-200 pr-2 mr-1">
+            <div class="flex items-center gap-1.5 border-r border-slate-200 pr-2 mr-1">
               <div class="hidden lg:block text-left">
                 <p id="user-display-name" class="text-xs font-bold text-slate-800">المشرف المسؤول</p>
               </div>
-              <button onclick="handleLogout()" title="تسجيل الخروج" class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
+              <button onclick="openChangePasswordSection()" title="تغيير كلمة مرور الدخول" class="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition">
+                <i class="fa-solid fa-key"></i>
+              </button>
+              <button onclick="handleLogout()" title="قفل النظام وتسجيل الخروج" class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
                 <i class="fa-solid fa-right-from-bracket"></i>
               </button>
             </div>
@@ -1349,6 +1340,67 @@
 
             </form>
 
+            <!-- Security & Change Password Section -->
+            <div id="security-password-section" class="mt-8 pt-6 border-t border-slate-200">
+              <div class="bg-gradient-to-br from-slate-50 to-navy-50/40 p-5 rounded-2xl border border-slate-200">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <i class="fa-solid fa-key text-brand-600 text-base"></i>
+                      حماية النظام وتغيير كلمة مرور الدخول
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">يمكنك تغيير كلمة السر الخاصة بالدخول للنظام في أي وقت. عند تغييرها سيُطلب إدخال الكلمة الجديدة على جميع الأجهزة.</p>
+                  </div>
+                  <button type="button" onclick="handleLogout()" class="self-start sm:self-auto px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>قفل النظام الآن (تجربة الدخول)</span>
+                  </button>
+                </div>
+
+                <form id="change-password-form" onsubmit="handleChangePassword(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور الحالية <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                      <input type="password" id="sec-current-password" required placeholder="أدخل كلمة المرور الحالية"
+                        class="w-full p-2.5 pl-9 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                      <button type="button" onclick="toggleFieldPassword('sec-current-password', this)" class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-eye text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور الجديدة <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                      <input type="password" id="sec-new-password" required minlength="4" placeholder="أدخل كلمة المرور الجديدة"
+                        class="w-full p-2.5 pl-9 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                      <button type="button" onclick="toggleFieldPassword('sec-new-password', this)" class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-eye text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تأكيد كلمة المرور الجديدة <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                      <input type="password" id="sec-confirm-password" required minlength="4" placeholder="أعد كتابة كلمة المرور الجديدة"
+                        class="w-full p-2.5 pl-9 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                      <button type="button" onclick="toggleFieldPassword('sec-confirm-password', this)" class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-eye text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-3 flex justify-end pt-1">
+                    <button type="submit" id="change-password-submit-btn" class="px-6 py-2.5 bg-navy-800 hover:bg-navy-900 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+                      <i class="fa-solid fa-key"></i>
+                      <span>تحديث وحفظ كلمة المرور الجديدة</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
             <div class="mt-8 pt-6 border-t border-slate-200">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1948,6 +2000,6 @@
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261019_v10_wa_tabs_fix"></script>
+  <script src="/static/app.js?v=20261028_v11_auth_password"></script>
 </body>
 </html>
