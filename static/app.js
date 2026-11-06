@@ -665,26 +665,7 @@ const ARABIC_HIJRI_MONTHS = [
   'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
 ];
 
-function populateArabicDaySelect() {
-  const daySel = document.getElementById('trip-ar-day');
-  if (!daySel || daySel.options.length > 0) return;
-  for (let d = 1; d <= 30; d++) {
-    const opt = document.createElement('option');
-    opt.value = String(d);
-    opt.textContent = `${d}`;
-    daySel.appendChild(opt);
-  }
-}
-
-function syncArabicDateSelectorsToInput() {
-  const day = document.getElementById('trip-ar-day')?.value || '1';
-  const month = document.getElementById('trip-ar-month')?.value || 'محرم';
-  const year = document.getElementById('trip-ar-year')?.value || '1448هـ';
-  const hijriInput = document.getElementById('trip-hijri-input');
-  if (hijriInput) {
-    hijriInput.value = `${day} ${month} ${year}`;
-  }
-}
+let currentTripDateType = 'hijri'; // 'hijri' or 'gregorian'
 
 function convertDateObjToArabicHijri(dateObj) {
   try {
@@ -694,77 +675,66 @@ function convertDateObjToArabicHijri(dateObj) {
     const monthNum = parseInt(toEnDigits(new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { month: 'numeric' }).format(dateObj)).replace(/[^\d]/g, ''), 10) || 1;
     const yearNum = toEnDigits(new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { year: 'numeric' }).format(dateObj)).replace(/[^\d]/g, '') || '1448';
     const monthName = ARABIC_HIJRI_MONTHS[(monthNum - 1) % 12] || 'محرم';
-    const yearVal = `${yearNum}هـ`;
-
-    populateArabicDaySelect();
-    const daySel = document.getElementById('trip-ar-day');
-    const monthSel = document.getElementById('trip-ar-month');
-    const yearSel = document.getElementById('trip-ar-year');
-    if (daySel) daySel.value = dayStr;
-    if (monthSel) monthSel.value = monthName;
-    if (yearSel) {
-      if (!Array.from(yearSel.options).some(o => o.value === yearVal)) {
-        const opt = document.createElement('option');
-        opt.value = yearVal;
-        opt.textContent = yearVal;
-        yearSel.appendChild(opt);
-      }
-      yearSel.value = yearVal;
-    }
-    return `${dayStr} ${monthName} ${yearVal}`;
+    return `${dayStr} ${monthName} ${yearNum}هـ`;
   } catch (e) {
     return '1 محرم 1448هـ';
   }
 }
 
-function setTodayArabicTripDate() {
-  const now = new Date();
-  const arDate = convertDateObjToArabicHijri(now);
-  const hijriInput = document.getElementById('trip-hijri-input');
-  if (hijriInput) hijriInput.value = arDate;
-  const gregInput = document.getElementById('trip-gregorian-input');
-  if (gregInput) gregInput.value = now.toISOString().split('T')[0];
-}
-
-function onTripGregorianDateChange(val) {
-  if (!val) return;
+function formatGregorianDateArabic(val) {
+  if (!val) return '';
   const parts = val.split('-');
-  if (parts.length === 3) {
-    const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
-    const arDate = convertDateObjToArabicHijri(dt);
-    const hijriInput = document.getElementById('trip-hijri-input');
-    if (hijriInput) hijriInput.value = arDate;
+  if (parts.length !== 3) return val;
+  return `${parts[0]}/${parts[1]}/${parts[2]} م`;
+}
+
+function setTripDateCalendarType(type) {
+  currentTripDateType = type === 'gregorian' ? 'gregorian' : 'hijri';
+  const btnHijri = document.getElementById('btn-date-type-hijri');
+  const btnGreg = document.getElementById('btn-date-type-gregorian');
+  const hijriInput = document.getElementById('trip-hijri-input');
+  const gregInput = document.getElementById('trip-gregorian-input');
+
+  if (btnHijri && btnGreg) {
+    if (currentTripDateType === 'hijri') {
+      btnHijri.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-brand-600 text-white transition';
+      btnGreg.className = 'px-3 py-1 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition';
+      if (hijriInput) hijriInput.placeholder = 'مثال: 21 محرم 1448هـ (أو اختر من التقويم)';
+    } else {
+      btnGreg.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-brand-600 text-white transition';
+      btnHijri.className = 'px-3 py-1 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition';
+      if (hijriInput) hijriInput.placeholder = 'مثال: 2026/11/06 م (أو اختر من التقويم)';
+    }
+  }
+
+  if (gregInput && gregInput.value) {
+    onTripCalendarPick(gregInput.value);
   }
 }
 
-function parseArabicDateIntoSelectors(dateText) {
-  populateArabicDaySelect();
-  if (!dateText) return;
-  const dayMatch = dateText.match(/\b(\d{1,2})\b/);
-  if (dayMatch && document.getElementById('trip-ar-day')) {
-    document.getElementById('trip-ar-day').value = String(parseInt(dayMatch[1], 10));
-  }
-  const foundMonth = ARABIC_HIJRI_MONTHS.find(m => dateText.includes(m));
-  if (foundMonth && document.getElementById('trip-ar-month')) {
-    document.getElementById('trip-ar-month').value = foundMonth;
-  }
-  const yearMatch = dateText.match(/(14\d{2})/);
-  if (yearMatch && document.getElementById('trip-ar-year')) {
-    const yv = `${yearMatch[1]}هـ`;
-    const yearSel = document.getElementById('trip-ar-year');
-    if (Array.from(yearSel.options).some(o => o.value === yv)) {
-      yearSel.value = yv;
+function onTripCalendarPick(val) {
+  if (!val) return;
+  const hijriInput = document.getElementById('trip-hijri-input');
+  if (!hijriInput) return;
+
+  if (currentTripDateType === 'gregorian') {
+    hijriInput.value = formatGregorianDateArabic(val);
+  } else {
+    const parts = val.split('-');
+    if (parts.length === 3) {
+      const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+      hijriInput.value = convertDateObjToArabicHijri(dt);
     }
   }
 }
 
 function openNewTripModal() {
-  populateArabicDaySelect();
   document.getElementById('trip-modal-id').value = '';
   document.getElementById('trip-modal-title').innerHTML = '<i class="fa-solid fa-route"></i> إضافة رحلة جديدة';
   document.getElementById('trip-name-input').value = '';
+  document.getElementById('trip-hijri-input').value = '';
   document.getElementById('trip-gregorian-input').value = '';
-  setTodayArabicTripDate();
+  setTripDateCalendarType('hijri');
   document.getElementById('trip-hotel-input').value = 'فندق أبراج مكة ميلينيوم';
   document.getElementById('trip-bus-input').value = 'حافلة VIP 1';
   document.getElementById('trip-supervisor-input').value = state.currentUser?.full_name || 'مشرف الرحلات';
@@ -779,13 +749,17 @@ function openEditTripModal(tripId) {
   const trip = state.trips.find(t => t.id === tripId);
   if (!trip) return;
 
-  populateArabicDaySelect();
   document.getElementById('trip-modal-id').value = trip.id;
   document.getElementById('trip-modal-title').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> تعديل بيانات الرحلة';
   document.getElementById('trip-name-input').value = trip.name || '';
-  document.getElementById('trip-hijri-input').value = trip.hijri_date || '';
-  parseArabicDateIntoSelectors(trip.hijri_date || '');
   document.getElementById('trip-gregorian-input').value = trip.gregorian_date || '';
+  const savedDate = trip.hijri_date || '';
+  if (savedDate.includes('م') && !savedDate.includes('هـ') && /\d{4}[\/\-]\d{1,2}/.test(savedDate)) {
+    setTripDateCalendarType('gregorian');
+  } else {
+    setTripDateCalendarType('hijri');
+  }
+  document.getElementById('trip-hijri-input').value = savedDate;
   document.getElementById('trip-hotel-input').value = trip.hotel_name || '';
   document.getElementById('trip-bus-input').value = trip.bus_number || '';
   document.getElementById('trip-supervisor-input').value = trip.supervisor_name || '';

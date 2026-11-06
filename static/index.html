@@ -1690,61 +1690,32 @@
             class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
         </div>
 
-        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
           <div class="flex items-center justify-between">
-            <label class="block font-bold text-slate-800">تاريخ الرحلة (التاريخ العربي) <span class="text-red-500">*</span></label>
-            <button type="button" onclick="setTodayArabicTripDate()" class="text-[11px] font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
-              <i class="fa-solid fa-calendar-check"></i>
-              <span>تاريخ اليوم بالعربي</span>
-            </button>
-          </div>
-
-          <!-- Quick Arabic Date Pickers (Day / Arabic Month / Year) -->
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <span class="block text-[10px] font-bold text-slate-500 mb-1">اليوم</span>
-              <select id="trip-ar-day" onchange="syncArabicDateSelectorsToInput()" class="w-full p-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-              </select>
-            </div>
-            <div>
-              <span class="block text-[10px] font-bold text-slate-500 mb-1">الشهر العربي</span>
-              <select id="trip-ar-month" onchange="syncArabicDateSelectorsToInput()" class="w-full p-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <option value="محرم">محرم</option>
-                <option value="صفر">صفر</option>
-                <option value="ربيع الأول">ربيع الأول</option>
-                <option value="ربيع الآخر">ربيع الآخر</option>
-                <option value="جمادى الأولى">جمادى الأولى</option>
-                <option value="جمادى الآخرة">جمادى الآخرة</option>
-                <option value="رجب">رجب</option>
-                <option value="شعبان">شعبان</option>
-                <option value="رمضان">رمضان</option>
-                <option value="شوال">شوال</option>
-                <option value="ذو القعدة">ذو القعدة</option>
-                <option value="ذو الحجة">ذو الحجة</option>
-              </select>
-            </div>
-            <div>
-              <span class="block text-[10px] font-bold text-slate-500 mb-1">السنة</span>
-              <select id="trip-ar-year" onchange="syncArabicDateSelectorsToInput()" class="w-full p-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <option value="1446هـ">1446هـ</option>
-                <option value="1447هـ">1447هـ</option>
-                <option value="1448هـ" selected>1448هـ</option>
-                <option value="1449هـ">1449هـ</option>
-                <option value="1450هـ">1450هـ</option>
-              </select>
+            <label class="block font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-days text-brand-600"></i>
+              <span>تاريخ الرحلة ( هـ . م ) <span class="text-red-500">*</span></span>
+            </label>
+            <div class="inline-flex bg-white p-1 rounded-xl border border-slate-300 shadow-xs">
+              <button type="button" id="btn-date-type-hijri" onclick="setTripDateCalendarType('hijri')"
+                class="px-3 py-1 rounded-lg text-xs font-bold bg-brand-600 text-white transition">
+                هجري (هـ)
+              </button>
+              <button type="button" id="btn-date-type-gregorian" onclick="setTripDateCalendarType('gregorian')"
+                class="px-3 py-1 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                ميلادي (م)
+              </button>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">نص التاريخ العربي (يُكتب تلقائياً أو عدّله كما تشاء):</label>
-              <input type="text" id="trip-hijri-input" required placeholder="مثال: 21 محرم 1448هـ"
+              <input type="text" id="trip-hijri-input" required placeholder="اختر من التقويم بجانبه أو اكتب التاريخ (هـ / م)"
                 class="w-full p-2.5 text-sm font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">أو اختر من التقويم ليُكتب بالعربي تلقائياً:</label>
-              <input type="date" id="trip-gregorian-input" onchange="onTripGregorianDateChange(this.value)"
-                class="w-full p-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              <input type="date" id="trip-gregorian-input" onchange="onTripCalendarPick(this.value)" title="التقويم"
+                class="w-full p-2.5 text-sm font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
             </div>
           </div>
         </div>
@@ -2222,6 +2193,6 @@
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261106_v13_bulk_wa_cards_ardate"></script>
+  <script src="/static/app.js?v=20261106_v14_trip_date_hm"></script>
 </body>
 </html>
