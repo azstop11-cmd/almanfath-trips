@@ -600,7 +600,8 @@ function populateTripSelectors() {
     'bulk-cards-trip',
     'cust-modal-trip-select',
     'batch-status-trip-select',
-    'bus-filter-trip'
+    'bus-filter-trip',
+    'bulk-wa-trip-select'
   ];
 
   const activeTrips = state.trips.filter(t => t.status === 'active' || !t.status);
@@ -612,7 +613,7 @@ function populateTripSelectors() {
     const currentVal = el.value;
     el.innerHTML = '';
 
-    if (selId === 'cust-filter-trip') {
+    if (selId === 'cust-filter-trip' || selId === 'bulk-wa-trip-select') {
       const optAll = document.createElement('option');
       optAll.value = '';
       optAll.textContent = 'جميع الرحلات المسجلة';
@@ -659,12 +660,111 @@ function openCurrentTripManifest() {
   }
 }
 
+const ARABIC_HIJRI_MONTHS = [
+  'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة',
+  'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+];
+
+function populateArabicDaySelect() {
+  const daySel = document.getElementById('trip-ar-day');
+  if (!daySel || daySel.options.length > 0) return;
+  for (let d = 1; d <= 30; d++) {
+    const opt = document.createElement('option');
+    opt.value = String(d);
+    opt.textContent = `${d}`;
+    daySel.appendChild(opt);
+  }
+}
+
+function syncArabicDateSelectorsToInput() {
+  const day = document.getElementById('trip-ar-day')?.value || '1';
+  const month = document.getElementById('trip-ar-month')?.value || 'محرم';
+  const year = document.getElementById('trip-ar-year')?.value || '1448هـ';
+  const hijriInput = document.getElementById('trip-hijri-input');
+  if (hijriInput) {
+    hijriInput.value = `${day} ${month} ${year}`;
+  }
+}
+
+function convertDateObjToArabicHijri(dateObj) {
+  try {
+    const arDigitsMap = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
+    const toEnDigits = s => String(s).replace(/[٠-٩]/g, d => arDigitsMap[d] || d);
+    const dayStr = toEnDigits(new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { day: 'numeric' }).format(dateObj)).replace(/[^\d]/g, '') || '1';
+    const monthNum = parseInt(toEnDigits(new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { month: 'numeric' }).format(dateObj)).replace(/[^\d]/g, ''), 10) || 1;
+    const yearNum = toEnDigits(new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { year: 'numeric' }).format(dateObj)).replace(/[^\d]/g, '') || '1448';
+    const monthName = ARABIC_HIJRI_MONTHS[(monthNum - 1) % 12] || 'محرم';
+    const yearVal = `${yearNum}هـ`;
+
+    populateArabicDaySelect();
+    const daySel = document.getElementById('trip-ar-day');
+    const monthSel = document.getElementById('trip-ar-month');
+    const yearSel = document.getElementById('trip-ar-year');
+    if (daySel) daySel.value = dayStr;
+    if (monthSel) monthSel.value = monthName;
+    if (yearSel) {
+      if (!Array.from(yearSel.options).some(o => o.value === yearVal)) {
+        const opt = document.createElement('option');
+        opt.value = yearVal;
+        opt.textContent = yearVal;
+        yearSel.appendChild(opt);
+      }
+      yearSel.value = yearVal;
+    }
+    return `${dayStr} ${monthName} ${yearVal}`;
+  } catch (e) {
+    return '1 محرم 1448هـ';
+  }
+}
+
+function setTodayArabicTripDate() {
+  const now = new Date();
+  const arDate = convertDateObjToArabicHijri(now);
+  const hijriInput = document.getElementById('trip-hijri-input');
+  if (hijriInput) hijriInput.value = arDate;
+  const gregInput = document.getElementById('trip-gregorian-input');
+  if (gregInput) gregInput.value = now.toISOString().split('T')[0];
+}
+
+function onTripGregorianDateChange(val) {
+  if (!val) return;
+  const parts = val.split('-');
+  if (parts.length === 3) {
+    const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+    const arDate = convertDateObjToArabicHijri(dt);
+    const hijriInput = document.getElementById('trip-hijri-input');
+    if (hijriInput) hijriInput.value = arDate;
+  }
+}
+
+function parseArabicDateIntoSelectors(dateText) {
+  populateArabicDaySelect();
+  if (!dateText) return;
+  const dayMatch = dateText.match(/\b(\d{1,2})\b/);
+  if (dayMatch && document.getElementById('trip-ar-day')) {
+    document.getElementById('trip-ar-day').value = String(parseInt(dayMatch[1], 10));
+  }
+  const foundMonth = ARABIC_HIJRI_MONTHS.find(m => dateText.includes(m));
+  if (foundMonth && document.getElementById('trip-ar-month')) {
+    document.getElementById('trip-ar-month').value = foundMonth;
+  }
+  const yearMatch = dateText.match(/(14\d{2})/);
+  if (yearMatch && document.getElementById('trip-ar-year')) {
+    const yv = `${yearMatch[1]}هـ`;
+    const yearSel = document.getElementById('trip-ar-year');
+    if (Array.from(yearSel.options).some(o => o.value === yv)) {
+      yearSel.value = yv;
+    }
+  }
+}
+
 function openNewTripModal() {
+  populateArabicDaySelect();
   document.getElementById('trip-modal-id').value = '';
   document.getElementById('trip-modal-title').innerHTML = '<i class="fa-solid fa-route"></i> إضافة رحلة جديدة';
   document.getElementById('trip-name-input').value = '';
-  document.getElementById('trip-hijri-input').value = '';
   document.getElementById('trip-gregorian-input').value = '';
+  setTodayArabicTripDate();
   document.getElementById('trip-hotel-input').value = 'فندق أبراج مكة ميلينيوم';
   document.getElementById('trip-bus-input').value = 'حافلة VIP 1';
   document.getElementById('trip-supervisor-input').value = state.currentUser?.full_name || 'مشرف الرحلات';
@@ -679,10 +779,12 @@ function openEditTripModal(tripId) {
   const trip = state.trips.find(t => t.id === tripId);
   if (!trip) return;
 
+  populateArabicDaySelect();
   document.getElementById('trip-modal-id').value = trip.id;
   document.getElementById('trip-modal-title').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> تعديل بيانات الرحلة';
   document.getElementById('trip-name-input').value = trip.name || '';
   document.getElementById('trip-hijri-input').value = trip.hijri_date || '';
+  parseArabicDateIntoSelectors(trip.hijri_date || '');
   document.getElementById('trip-gregorian-input').value = trip.gregorian_date || '';
   document.getElementById('trip-hotel-input').value = trip.hotel_name || '';
   document.getElementById('trip-bus-input').value = trip.bus_number || '';
@@ -851,14 +953,18 @@ function renderTripsGrid() {
       </div>
 
       <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div class="flex items-center gap-1">
+        <div class="flex flex-wrap items-center gap-1">
           <button onclick="openTripManifestView(${t.id})" title="كشف المشرف الرسمي" class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold rounded-lg transition flex items-center gap-1">
             <i class="fa-solid fa-file-signature"></i>
             <span>الكشف</span>
           </button>
-          <button onclick="openTripCardsView(${t.id})" title="بطاقات الرحلة" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg transition flex items-center gap-1">
+          <button onclick="openTripCardsView(${t.id})" title="بطاقات الرحلة وحفظها دفعة واحدة" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg transition flex items-center gap-1">
             <i class="fa-solid fa-id-card"></i>
             <span>البطاقات</span>
+          </button>
+          <button onclick="openBulkWhatsAppModalForTrip(${t.id})" title="إرسال واتساب جماعي لعملاء هذه الرحلة" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg transition flex items-center gap-1">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>واتساب جماعي</span>
           </button>
           <button onclick="archiveTripPrompt(${t.id})" title="نقل إلى الأرشيف" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-lg transition flex items-center gap-1">
             <i class="fa-solid fa-box-archive text-amber-600"></i>
@@ -1323,6 +1429,30 @@ function filterCustomers() {
   renderCustomersTable();
 }
 
+let selectedCustomerIdsInTable = new Set();
+
+function toggleSelectAllCustomers(isChecked) {
+  selectedCustomerIdsInTable.clear();
+  if (isChecked) {
+    state.filteredCustomers.forEach(c => selectedCustomerIdsInTable.add(c.id));
+  }
+  document.querySelectorAll('.cust-row-check').forEach(cb => {
+    cb.checked = isChecked;
+  });
+}
+
+function onCustomerRowCheckboxChange(custId, isChecked) {
+  if (isChecked) {
+    selectedCustomerIdsInTable.add(custId);
+  } else {
+    selectedCustomerIdsInTable.delete(custId);
+  }
+  const masterCb = document.getElementById('cust-select-all-check');
+  if (masterCb) {
+    masterCb.checked = state.filteredCustomers.length > 0 && state.filteredCustomers.every(c => selectedCustomerIdsInTable.has(c.id));
+  }
+}
+
 function renderCustomersTable() {
   const tbody = document.getElementById('customers-tbody');
   const counter = document.getElementById('cust-table-counter');
@@ -1332,7 +1462,7 @@ function renderCustomersTable() {
   if (counter) counter.textContent = `إجمالي المعروض: ${state.filteredCustomers.length} عميل (من أصل ${state.customers.length})`;
 
   if (state.filteredCustomers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="text-center py-12 text-slate-400 font-bold">لا توجد نتائج مطابقة لبحثك</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="text-center py-12 text-slate-400 font-bold">لا توجد نتائج مطابقة لبحثك</td></tr>`;
     return;
   }
 
@@ -1351,8 +1481,13 @@ function renderCustomersTable() {
 
     const tr = document.createElement('tr');
     if (isNoShow) tr.classList.add('bg-rose-50/50');
+    const isRowChecked = selectedCustomerIdsInTable.has(c.id);
 
     tr.innerHTML = `
+      <td class="text-center no-print">
+        <input type="checkbox" class="cust-row-check w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+          ${isRowChecked ? 'checked' : ''} onchange="onCustomerRowCheckboxChange(${c.id}, this.checked)">
+      </td>
       <td class="text-slate-400 font-mono text-xs">${idx + 1}</td>
       <td>
         <span onclick="openCustomerCard(${c.id})" class="clickable-name" title="اضغط لعرض وتحميل بطاقة العميل">
@@ -2173,20 +2308,25 @@ async function shareCustomerCard() {
   }
 }
 
-// ==================== BULK CARDS GENERATOR ==================== //
+// ==================== BULK CARDS GENERATOR & ONE-CLICK SAVE ALL ==================== //
 
-function renderBulkCards() {
+function getFilteredBulkCardsCustomers() {
   const tripSel = document.getElementById('bulk-cards-trip');
   const filterSel = document.getElementById('bulk-cards-filter');
-  const grid = document.getElementById('bulk-cards-grid');
-
-  if (!grid) return;
   const tripId = parseInt(tripSel?.value || state.activeTripId, 10);
   const filter = filterSel?.value || 'all';
 
   let tripCusts = state.customers.filter(c => c.trip_id === tripId);
-  if (filter === 'shaqra') tripCusts = tripCusts.filter(c => c.pickup_point.includes('شقراء'));
-  else if (filter === 'dawadmi') tripCusts = tripCusts.filter(c => c.pickup_point.includes('الدوادمي'));
+  if (filter === 'shaqra') tripCusts = tripCusts.filter(c => (c.pickup_point || '').includes('شقراء'));
+  else if (filter === 'dawadmi') tripCusts = tripCusts.filter(c => (c.pickup_point || '').includes('الدوادمي'));
+  return { tripId, tripCusts };
+}
+
+function renderBulkCards() {
+  const grid = document.getElementById('bulk-cards-grid');
+  if (!grid) return;
+
+  const { tripCusts } = getFilteredBulkCardsCustomers();
 
   grid.innerHTML = '';
   if (tripCusts.length === 0) {
@@ -2194,10 +2334,23 @@ function renderBulkCards() {
     return;
   }
 
-  tripCusts.forEach(c => {
+  tripCusts.forEach((c, idx) => {
     const cardWrapper = document.createElement('div');
+    cardWrapper.className = 'flex flex-col items-center';
     cardWrapper.innerHTML = `
-      <div class="passenger-card" style="width: 100% !important; max-width: 440px !important;">
+      <div class="no-print w-full max-w-[440px] flex items-center justify-between bg-slate-100 border border-slate-200 rounded-t-2xl px-3.5 py-2 text-xs">
+        <span class="font-black text-slate-700">#${idx + 1} - ${c.full_name}</span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="downloadBulkCardSinglePNG(${c.id})" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 transition" title="حفظ هذه البطاقة كصورة">
+            <i class="fa-solid fa-download"></i>
+            <span>حفظ صورة</span>
+          </button>
+          <button onclick="openWhatsAppModal(${c.id})" class="p-1.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg transition" title="مراسلة واتساب">
+            <i class="fa-brands fa-whatsapp"></i>
+          </button>
+        </div>
+      </div>
+      <div id="bulk-card-el-${c.id}" data-cust-name="${c.full_name}" class="passenger-card" style="width: 100% !important; max-width: 440px !important;">
         <div class="passenger-card-header">
           <div class="card-header-top">
             <div class="card-logo-box">
@@ -2207,7 +2360,7 @@ function renderBulkCards() {
               <h3 class="card-title-text">المنفذ المثالي لتنظيم الرحلات</h3>
             </div>
             <div class="card-badge-box">
-              <span class="card-badge-pill">بطاقة راكب</span>
+              <span class="card-badge-pill"><span class="badge-text">بطاقة راكب</span></span>
             </div>
           </div>
 
@@ -2251,7 +2404,7 @@ function renderBulkCards() {
 
           <div class="card-phone-row">
             <span class="card-phone-label">رقم الجوال:</span>
-            <span class="card-phone-val">${c.phone}</span>
+            <span class="card-phone-val">${c.phone || '-'}</span>
           </div>
         </div>
 
@@ -2271,6 +2424,308 @@ function renderBulkCards() {
   });
 }
 
+async function renderCardElementToCanvas(cardEl, scaleVal = 2.5) {
+  const targetId = cardEl.id;
+  return await html2canvas(cardEl, {
+    scale: scaleVal,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    onclone: (clonedDoc) => {
+      const clonedCard = targetId ? clonedDoc.getElementById(targetId) : null;
+      if (clonedCard) {
+        clonedCard.style.boxShadow = 'none';
+        clonedCard.style.margin = '0 auto';
+        const badge = clonedCard.querySelector('.card-badge-pill');
+        if (badge) {
+          badge.style.display = 'inline-flex';
+          badge.style.alignItems = 'center';
+          badge.style.justifyContent = 'center';
+          badge.style.height = '30px';
+          badge.style.padding = '0 14px';
+        }
+        const badgeText = clonedCard.querySelector('.badge-text');
+        if (badgeText) {
+          badgeText.style.position = 'relative';
+          badgeText.style.top = '-5px';
+          badgeText.style.display = 'inline-block';
+          badgeText.style.lineHeight = '1';
+        }
+        const nameBox = clonedCard.querySelector('.card-name-box');
+        if (nameBox) {
+          nameBox.style.padding = '8px 14px 20px 14px';
+          nameBox.style.boxSizing = 'border-box';
+        }
+        const nameLabel = clonedCard.querySelector('.card-name-label');
+        if (nameLabel) {
+          nameLabel.style.position = 'relative';
+          nameLabel.style.top = '-3px';
+          nameLabel.style.marginBottom = '2px';
+          nameLabel.style.lineHeight = '1.1';
+        }
+        const custNameEl = clonedCard.querySelector('#card-cust-name') || clonedCard.querySelector('.card-name-text');
+        if (custNameEl) {
+          custNameEl.style.position = 'relative';
+          custNameEl.style.top = '-8px';
+          custNameEl.style.lineHeight = '1.1';
+          custNameEl.style.display = 'block';
+          custNameEl.style.textAlign = 'center';
+        }
+      }
+    }
+  });
+}
+
+async function downloadBulkCardSinglePNG(custId) {
+  const cardEl = document.getElementById(`bulk-card-el-${custId}`);
+  if (!cardEl) {
+    openCustomerCard(custId);
+    return;
+  }
+  const custName = cardEl.getAttribute('data-cust-name') || 'العميل';
+  showToast(`جاري حفظ بطاقة (${custName})...`, 'info');
+  try {
+    if (document.fonts) await document.fonts.ready;
+    const canvas = await renderCardElementToCanvas(cardEl, 3);
+    const link = document.createElement('a');
+    link.download = `بطاقة_الراكب_${custName}.png`;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`تم حفظ بطاقة (${custName}) بنجاح`, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('حدث خطأ أثناء حفظ البطاقة', 'error');
+  }
+}
+
+function updateBulkCardsProgress(visible, text, pct) {
+  const box = document.getElementById('bulk-cards-progress-box');
+  const txt = document.getElementById('bulk-cards-progress-text');
+  const pctEl = document.getElementById('bulk-cards-progress-pct');
+  const bar = document.getElementById('bulk-cards-progress-bar');
+  if (!box) return;
+  if (!visible) {
+    box.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+  if (txt) txt.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-teal-600"></i> <span>${text}</span>`;
+  if (pctEl) pctEl.textContent = `${pct}%`;
+  if (bar) bar.style.width = `${pct}%`;
+}
+
+async function downloadAllCardsPDF() {
+  const { tripId, tripCusts } = getFilteredBulkCardsCustomers();
+  if (!tripCusts || tripCusts.length === 0) {
+    showToast('لا توجد بطاقات لحفظها في هذه الرحلة', 'warning');
+    return;
+  }
+
+  const tripObj = state.trips.find(t => t.id === tripId);
+  const tripName = tripObj ? tripObj.name.trim() : 'الرحلة';
+  const btnPdf = document.getElementById('btn-save-all-cards-pdf');
+  if (btnPdf) btnPdf.disabled = true;
+
+  showToast(`جاري تجهيز وحفظ جميع البطاقات (${tripCusts.length} بطاقة) في ملف PDF واحد...`, 'info');
+  updateBulkCardsProgress(true, `جاري تجهيز البطاقة 1 من ${tripCusts.length}...`, 2);
+
+  try {
+    if (document.fonts) await document.fonts.ready;
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+
+    for (let i = 0; i < tripCusts.length; i++) {
+      const c = tripCusts[i];
+      const pct = Math.round(((i + 1) / tripCusts.length) * 100);
+      updateBulkCardsProgress(true, `جاري حفظ بطاقة (${i + 1} من ${tripCusts.length}): ${c.full_name}...`, pct);
+
+      const cardEl = document.getElementById(`bulk-card-el-${c.id}`);
+      if (!cardEl) continue;
+
+      const canvas = await renderCardElementToCanvas(cardEl, 2.2);
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+      const cardWidthMm = 110;
+      const cardHeightMm = (canvas.height * cardWidthMm) / canvas.width;
+      const marginMm = 5;
+      const pageWidthMm = cardWidthMm + (marginMm * 2);
+      const pageHeightMm = cardHeightMm + (marginMm * 2);
+
+      if (!pdf) {
+        pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: [pageWidthMm, pageHeightMm]
+        });
+      } else {
+        pdf.addPage([pageWidthMm, pageHeightMm], 'portrait');
+      }
+      pdf.addImage(imgData, 'JPEG', marginMm, marginMm, cardWidthMm, cardHeightMm);
+      await new Promise(r => setTimeout(r, 20));
+    }
+
+    if (pdf) {
+      pdf.save(`جميع_بطاقات_${tripName}.pdf`);
+      showToast(`تم حفظ جميع البطاقات (${tripCusts.length} بطاقة) في ملف PDF واحد بنجاح!`, 'success');
+    }
+  } catch (err) {
+    console.error('Bulk PDF error:', err);
+    showToast('حدث خطأ أثناء حفظ جميع البطاقات PDF', 'error');
+  } finally {
+    updateBulkCardsProgress(false, '', 0);
+    if (btnPdf) btnPdf.disabled = false;
+  }
+}
+
+// Pure-JS Uncompressed ZIP Builder (zero external dependencies)
+function createZipFromFiles(filesArray) {
+  const crcTable = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    crcTable[n] = c;
+  }
+  function crc32(buf) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < buf.length; i++) {
+      crc = (crc >>> 8) ^ crcTable[(crc ^ buf[i]) & 0xFF];
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  filesArray.forEach(file => {
+    const nameBytes = encoder.encode(file.name);
+    const data = file.data; // Uint8Array
+    const crc = crc32(data);
+    const size = data.length;
+
+    // Local file header (30 bytes + nameBytes)
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(localHeader.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true); // UTF-8 flag
+    lv.setUint16(8, 0, true); // Store (0 = no compression, PNG is already compressed)
+    lv.setUint16(10, 0, true);
+    lv.setUint16(12, 0, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);
+    lv.setUint32(22, size, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+
+    // Central directory header (46 bytes + nameBytes)
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(centralHeader.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true); // UTF-8 flag
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    centralHeader.set(nameBytes, 46);
+
+    localParts.push(localHeader, data);
+    centralParts.push(centralHeader);
+    offset += localHeader.length + data.length;
+  });
+
+  const centralSize = centralParts.reduce((acc, p) => acc + p.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, filesArray.length, true);
+  ev.setUint16(10, filesArray.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  return new Blob([...localParts, ...centralParts, eocd], { type: 'application/zip' });
+}
+
+async function downloadAllCardsZIP() {
+  const { tripId, tripCusts } = getFilteredBulkCardsCustomers();
+  if (!tripCusts || tripCusts.length === 0) {
+    showToast('لا توجد بطاقات لحفظها في هذه الرحلة', 'warning');
+    return;
+  }
+
+  const tripObj = state.trips.find(t => t.id === tripId);
+  const tripName = tripObj ? tripObj.name.trim() : 'الرحلة';
+  const btnZip = document.getElementById('btn-save-all-cards-zip');
+  if (btnZip) btnZip.disabled = true;
+
+  showToast(`جاري تصوير وحفظ جميع البطاقات (${tripCusts.length} صورة PNG) في ملف مضغوط واحد...`, 'info');
+  updateBulkCardsProgress(true, `جاري تصوير البطاقة 1 من ${tripCusts.length}...`, 2);
+
+  try {
+    if (document.fonts) await document.fonts.ready;
+    const filesForZip = [];
+
+    for (let i = 0; i < tripCusts.length; i++) {
+      const c = tripCusts[i];
+      const pct = Math.round(((i + 1) / tripCusts.length) * 100);
+      updateBulkCardsProgress(true, `جاري حفظ صورة بطاقة (${i + 1} من ${tripCusts.length}): ${c.full_name}...`, pct);
+
+      const cardEl = document.getElementById(`bulk-card-el-${c.id}`);
+      if (!cardEl) continue;
+
+      const canvas = await renderCardElementToCanvas(cardEl, 2.5);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+      const arrayBuf = await blob.arrayBuffer();
+      const safeName = (c.full_name || `راكب_${i + 1}`).replace(/[\\/:*?"<>|]/g, '_');
+      const numPrefix = String(i + 1).padStart(2, '0');
+      filesForZip.push({
+        name: `${numPrefix}_بطاقة_${safeName}.png`,
+        data: new Uint8Array(arrayBuf)
+      });
+      await new Promise(r => setTimeout(r, 20));
+    }
+
+    const zipBlob = createZipFromFiles(filesForZip);
+    const url = window.URL.createObjectURL(zipBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `صور_بطاقات_${tripName}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    showToast(`تم حفظ جميع صور البطاقات (${filesForZip.length} بطاقة) بنجاح!`, 'success');
+  } catch (err) {
+    console.error('Bulk ZIP error:', err);
+    showToast('حدث خطأ أثناء حفظ صور البطاقات', 'error');
+  } finally {
+    updateBulkCardsProgress(false, '', 0);
+    if (btnZip) btnZip.disabled = false;
+  }
+}
+
 function printBulkCards() {
   const grid = document.getElementById('bulk-cards-grid');
   if (!grid) return;
@@ -2286,6 +2741,7 @@ function printBulkCards() {
         <style>
           * { box-sizing: border-box !important; font-family: 'Tajawal', sans-serif !important; }
           body { padding: 10mm; background: white; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .no-print { display: none !important; }
           .cards-print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
           @page { size: A4 portrait; margin: 8mm; }
           .passenger-card { max-width: 100% !important; page-break-inside: avoid !important; margin-bottom: 10px !important; border: 2.5px solid #009ca6 !important; border-radius: 20px !important; }
@@ -3601,9 +4057,10 @@ function formatCustomerWhatsAppMessage(rawTemplate, cust) {
   msg = msg.replace(/{customer_name}|{name}/g, cust.full_name || '');
   msg = msg.replace(/{seat_number}|{seat}/g, cust.seat_number ? String(cust.seat_number) : '-');
   msg = msg.replace(/{pickup_point}|{pickup}/g, cust.pickup_point || '');
-  msg = msg.replace(/{hotel_name}|{hotel}/g, cust.hotel_name || '');
+  msg = msg.replace(/{hotel_name}|{hotel}/g, cust.hotel_name || cust.trip_hotel || '');
   msg = msg.replace(/{room_number}|{room}/g, cust.room_number ? String(cust.room_number) : '-');
-  msg = msg.replace(/{ticket_price}|{price}/g, cust.ticket_price ? String(cust.ticket_price) : '0');
+  msg = msg.replace(/{remaining_balance}|{ticket_price}|{price}/g, cust.ticket_price ? String(cust.ticket_price) : '0');
+  msg = msg.replace(/{hijri_date}|{date}/g, cust.trip_hijri_date || cust.registered_at || '');
   msg = msg.replace(/{phone}/g, cust.phone || '');
   msg = msg.replace(/{national_id}/g, cust.national_id || '');
   msg = msg.replace(/{org_name}/g, s.org_name || 'المنفذ المثالي');
@@ -3731,4 +4188,346 @@ function sendWhatsAppModalDirect() {
   window.open(waLink, '_blank');
   closeWhatsAppModal();
 }
+
+// ==================== BULK WHATSAPP BROADCAST (الإرسال الجماعي للواتساب) ==================== //
+
+let bulkWaState = {
+  formulaIdx: 1,
+  filteredList: [],
+  selectedIds: new Set(),
+  sentIds: new Set(),
+  queueActive: false,
+  queueList: [],
+  queueIndex: 0,
+  timerId: null
+};
+
+function openBulkWhatsAppModalForTrip(tripId) {
+  state.activeTripId = tripId;
+  openBulkWhatsAppModal('trips', tripId);
+}
+
+function openBulkWhatsAppModal(sourceView = 'customers', explicitTripId = null) {
+  populateTripSelectors();
+  stopBulkWaQueue();
+
+  const tripSel = document.getElementById('bulk-wa-trip-select');
+  const pickupSel = document.getElementById('bulk-wa-pickup-select');
+  const statusSel = document.getElementById('bulk-wa-status-select');
+
+  if (tripSel) {
+    if (explicitTripId) {
+      tripSel.value = explicitTripId;
+    } else if (sourceView === 'bus' && busFilterState.tripId) {
+      tripSel.value = busFilterState.tripId;
+    } else if (sourceView === 'customers') {
+      const custFilterTrip = document.getElementById('cust-filter-trip')?.value;
+      tripSel.value = custFilterTrip !== undefined && custFilterTrip !== '' ? custFilterTrip : (state.activeTripId || '');
+    } else if (state.activeTripId) {
+      tripSel.value = state.activeTripId;
+    }
+  }
+
+  if (pickupSel) pickupSel.value = 'الكل';
+  if (statusSel) statusSel.value = 'الكل';
+
+  const activeDefault = parseInt(state.settings?.whatsapp_active_template || '1', 10) || 1;
+  bulkWaState.formulaIdx = activeDefault;
+
+  renderBulkWaFormulaButtons();
+  loadBulkWaFormulaIntoTextarea(bulkWaState.formulaIdx);
+  onBulkWaFilterChange(sourceView === 'customers' && selectedCustomerIdsInTable.size > 0);
+
+  const modal = document.getElementById('bulk-whatsapp-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeBulkWhatsAppModal() {
+  stopBulkWaQueue();
+  const modal = document.getElementById('bulk-whatsapp-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderBulkWaFormulaButtons() {
+  const container = document.getElementById('bulk-wa-formula-buttons');
+  if (!container) return;
+  const s = state.settings || {};
+
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const title = s[`whatsapp_title_${i}`] || (i === 1 ? 'الصيغة 1 (الرئيسية)' : `الصيغة ${i}`);
+    const isSelected = i === bulkWaState.formulaIdx;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.onclick = () => selectBulkWaFormula(i);
+    btn.className = `p-2 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+      isSelected
+        ? 'border-emerald-600 bg-emerald-600 text-white font-black shadow-sm'
+        : 'border-slate-200 bg-white hover:bg-emerald-50 text-slate-700 font-bold'
+    }`;
+    btn.innerHTML = `
+      <span class="text-[11px] truncate max-w-full">${title}</span>
+    `;
+    container.appendChild(btn);
+  }
+}
+
+function selectBulkWaFormula(idx) {
+  bulkWaState.formulaIdx = idx;
+  renderBulkWaFormulaButtons();
+  loadBulkWaFormulaIntoTextarea(idx);
+}
+
+function loadBulkWaFormulaIntoTextarea(idx) {
+  const s = state.settings || {};
+  const defaultTpl = "السلام عليكم ورحمة الله وبركاته\nأهلاً بك أخي الكريم: {name}\nنؤكد حجزك في [{trip_name}]\nنقطة الصعود: {pickup_point} | رقم المقعد: {seat_number}\nالفندق: {hotel_name}\nالمبلغ المتبقي: {remaining_balance} ريال\nمع تمنياتنا لكم برحلة سعيدة - المنفذ المثالي";
+  const tpl = s[`whatsapp_template_${idx}`] || (idx === 1 ? (s.whatsapp_template || defaultTpl) : '');
+  const box = document.getElementById('bulk-wa-template-text');
+  if (box) {
+    box.value = tpl;
+    box.placeholder = `اكتب نص الرسالة الجماعية هنا... يمكنك استخدام المتغيرات مثل {name} و {seat_number} و {pickup_point}`;
+  }
+  updateBulkWaSampleHint();
+}
+
+function updateBulkWaSampleHint() {
+  const hintEl = document.getElementById('bulk-wa-sample-preview-hint');
+  if (!hintEl) return;
+  const sampleCust = bulkWaState.filteredList[0] || state.customers[0];
+  if (sampleCust) {
+    hintEl.textContent = `مثال تلقائي: سيصل للعميل الأول باسم (${sampleCust.full_name}) ومقعد (${sampleCust.seat_number || '-'})`;
+  } else {
+    hintEl.textContent = '';
+  }
+}
+
+function onBulkWaFilterChange(useTableSelection = false) {
+  const tripVal = document.getElementById('bulk-wa-trip-select')?.value || '';
+  const pickupVal = document.getElementById('bulk-wa-pickup-select')?.value || 'الكل';
+  const statusVal = document.getElementById('bulk-wa-status-select')?.value || 'الكل';
+
+  const list = state.customers.filter(c => {
+    if (tripVal && String(c.trip_id) !== String(tripVal)) return false;
+    if (pickupVal !== 'الكل' && !(c.pickup_point || '').includes(pickupVal)) return false;
+    if (statusVal !== 'الكل' && c.status !== statusVal) return false;
+    return true;
+  });
+
+  bulkWaState.filteredList = list;
+  bulkWaState.selectedIds.clear();
+
+  if (useTableSelection && selectedCustomerIdsInTable.size > 0) {
+    list.forEach(c => {
+      if (selectedCustomerIdsInTable.has(c.id)) bulkWaState.selectedIds.add(c.id);
+    });
+    if (bulkWaState.selectedIds.size === 0) {
+      list.forEach(c => bulkWaState.selectedIds.add(c.id));
+    }
+  } else {
+    list.forEach(c => bulkWaState.selectedIds.add(c.id));
+  }
+
+  renderBulkWaRecipientsList();
+  updateBulkWaSampleHint();
+}
+
+function renderBulkWaRecipientsList() {
+  const container = document.getElementById('bulk-wa-recipients-list');
+  const selBadge = document.getElementById('bulk-wa-selected-badge');
+  const sentBadge = document.getElementById('bulk-wa-sent-badge');
+  const selectAllCb = document.getElementById('bulk-wa-select-all');
+  if (!container) return;
+
+  const list = bulkWaState.filteredList;
+  if (selBadge) selBadge.textContent = `محدد: ${bulkWaState.selectedIds.size} من ${list.length} عميل`;
+  if (sentBadge) {
+    sentBadge.textContent = `تم الإرسال: ${bulkWaState.sentIds.size}`;
+    sentBadge.classList.toggle('hidden', bulkWaState.sentIds.size === 0);
+  }
+  if (selectAllCb) {
+    selectAllCb.checked = list.length > 0 && list.every(c => bulkWaState.selectedIds.has(c.id));
+  }
+
+  container.innerHTML = '';
+  if (list.length === 0) {
+    container.innerHTML = `<div class="p-8 text-center text-slate-400 font-bold">لا يوجد ركاب مطابقين للتصفية المحددة</div>`;
+    return;
+  }
+
+  list.forEach((c, idx) => {
+    const isChecked = bulkWaState.selectedIds.has(c.id);
+    const isSent = bulkWaState.sentIds.has(c.id);
+    const hasPhone = Boolean((c.phone || '').replace(/\D/g, ''));
+
+    const row = document.createElement('div');
+    row.id = `bulk-wa-row-${c.id}`;
+    row.className = `px-4 py-2.5 flex items-center justify-between gap-2 transition ${isSent ? 'bg-emerald-50/70' : 'hover:bg-slate-50'}`;
+    row.innerHTML = `
+      <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+        <input type="checkbox" class="bulk-wa-cust-cb w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+          ${isChecked ? 'checked' : ''} onchange="onBulkWaRecipientCheck(${c.id}, this.checked)">
+        <span class="text-slate-400 font-mono text-[11px] w-6">${idx + 1}.</span>
+        <span class="font-bold text-slate-800 truncate">${c.full_name}</span>
+        <span class="text-[11px] font-mono ${hasPhone ? 'text-slate-600' : 'text-rose-500 font-bold'}">${c.phone || 'بدون جوال'}</span>
+        <span class="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold">مقعد ${c.seat_number || '-'} • ${c.pickup_point || '-'}</span>
+      </label>
+
+      <div class="flex items-center gap-2 shrink-0">
+        ${isSent ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black flex items-center gap-1"><i class="fa-solid fa-check"></i> تم الإرسال</span>` : ''}
+        <button type="button" onclick="sendSingleInBulkWaModal(${c.id})" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1" title="إرسال لهذا العميل الآن">
+          <i class="fa-brands fa-whatsapp"></i>
+          <span>إرسال</span>
+        </button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function toggleBulkWaSelectAll(isChecked) {
+  bulkWaState.selectedIds.clear();
+  if (isChecked) {
+    bulkWaState.filteredList.forEach(c => bulkWaState.selectedIds.add(c.id));
+  }
+  renderBulkWaRecipientsList();
+}
+
+function onBulkWaRecipientCheck(custId, isChecked) {
+  if (isChecked) bulkWaState.selectedIds.add(custId);
+  else bulkWaState.selectedIds.delete(custId);
+  renderBulkWaRecipientsList();
+}
+
+function openCustomerWhatsAppWindow(cust) {
+  const tplBox = document.getElementById('bulk-wa-template-text');
+  const rawTpl = tplBox ? tplBox.value.trim() : '';
+  const msgText = formatCustomerWhatsAppMessage(rawTpl, cust);
+
+  let waPhone = (cust.phone || '').replace(/\D/g, '');
+  if (waPhone.startsWith('05')) waPhone = '966' + waPhone.substring(1);
+  else if (waPhone.startsWith('5')) waPhone = '966' + waPhone;
+
+  if (!waPhone) {
+    showToast(`العميل (${cust.full_name}) لا يملك رقم جوال مسجل`, 'warning');
+    return false;
+  }
+
+  const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(msgText)}`;
+  window.open(waLink, 'manfath_wa_broadcast_win');
+  bulkWaState.sentIds.add(cust.id);
+  return true;
+}
+
+function sendSingleInBulkWaModal(custId) {
+  const cust = state.customers.find(c => c.id === custId);
+  if (!cust) return;
+  openCustomerWhatsAppWindow(cust);
+  renderBulkWaRecipientsList();
+}
+
+function startBulkWhatsAppQueue() {
+  stopBulkWaQueue();
+
+  const queue = bulkWaState.filteredList.filter(c => {
+    const hasPhone = Boolean((c.phone || '').replace(/\D/g, ''));
+    return bulkWaState.selectedIds.has(c.id) && hasPhone;
+  });
+
+  if (queue.length === 0) {
+    showToast('يرجى تحديد عميل واحد على الأقل لديه رقم جوال', 'warning');
+    return;
+  }
+
+  const tplBox = document.getElementById('bulk-wa-template-text');
+  if (!tplBox || !tplBox.value.trim()) {
+    showToast('يرجى اختيار صيغة تحتوي على نص أو كتابة نص الرسالة أولاً', 'warning');
+    return;
+  }
+
+  bulkWaState.queueList = queue;
+  bulkWaState.queueIndex = 0;
+  bulkWaState.queueActive = true;
+
+  const banner = document.getElementById('bulk-wa-queue-banner');
+  if (banner) banner.classList.remove('hidden');
+
+  sendNextInBulkWaQueue();
+}
+
+function sendNextInBulkWaQueue() {
+  if (!bulkWaState.queueActive) return;
+  if (bulkWaState.timerId) {
+    clearTimeout(bulkWaState.timerId);
+    bulkWaState.timerId = null;
+  }
+
+  if (bulkWaState.queueIndex >= bulkWaState.queueList.length) {
+    stopBulkWaQueue();
+    showToast(`اكتمل الإرسال الجماعي لجميع العملاء المحددين (${bulkWaState.queueList.length} عميل) بنجاح!`, 'success');
+    return;
+  }
+
+  const currentCust = bulkWaState.queueList[bulkWaState.queueIndex];
+  const currentNum = bulkWaState.queueIndex + 1;
+  const totalNum = bulkWaState.queueList.length;
+
+  const statusEl = document.getElementById('bulk-wa-queue-status');
+  if (statusEl) {
+    statusEl.textContent = `جاري الإرسال للعميل (${currentNum} من ${totalNum}): ${currentCust.full_name} - مقعد ${currentCust.seat_number || '-'}`;
+  }
+
+  openCustomerWhatsAppWindow(currentCust);
+  bulkWaState.queueIndex++;
+  renderBulkWaRecipientsList();
+
+  const rowEl = document.getElementById(`bulk-wa-row-${currentCust.id}`);
+  if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (bulkWaState.queueIndex < bulkWaState.queueList.length) {
+    const mode = document.getElementById('bulk-wa-mode-select')?.value || 'auto_4';
+    if (mode.startsWith('auto_')) {
+      const sec = parseInt(mode.split('_')[1], 10) || 4;
+      bulkWaState.timerId = setTimeout(() => {
+        sendNextInBulkWaQueue();
+      }, sec * 1000);
+    }
+  } else {
+    setTimeout(() => {
+      stopBulkWaQueue();
+      showToast(`اكتمل إرسال الرسائل لجميع العملاء المحددين (${totalNum} عميل)!`, 'success');
+    }, 1500);
+  }
+}
+
+function stopBulkWaQueue() {
+  bulkWaState.queueActive = false;
+  if (bulkWaState.timerId) {
+    clearTimeout(bulkWaState.timerId);
+    bulkWaState.timerId = null;
+  }
+  const banner = document.getElementById('bulk-wa-queue-banner');
+  if (banner) banner.classList.add('hidden');
+}
+
+function resetBulkWaSentStatus() {
+  stopBulkWaQueue();
+  bulkWaState.sentIds.clear();
+  renderBulkWaRecipientsList();
+  showToast('تم تصفير حالة الإرسال بنجاح', 'info');
+}
+
+function copyAllSelectedWaPhones() {
+  const phones = bulkWaState.filteredList
+    .filter(c => bulkWaState.selectedIds.has(c.id) && c.phone)
+    .map(c => c.phone.trim());
+  if (phones.length === 0) {
+    showToast('لا توجد أرقام محددة للنسخ', 'warning');
+    return;
+  }
+  navigator.clipboard.writeText(phones.join('\n')).then(() => {
+    showToast(`تم نسخ ${phones.length} رقم جوال إلى الحافظة بنجاح`, 'success');
+  });
+}
+
 

@@ -478,16 +478,20 @@
                 <h2 class="text-xl font-bold text-slate-800">قاعدة بيانات العملاء والركاب</h2>
                 <p class="text-xs text-slate-500 mt-0.5">اضغط على أي اسم لعرض وطباعة بطاقة العميل مباشرة</p>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <button onclick="openAddCustomerModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
                   <i class="fa-solid fa-user-plus"></i>
                   <span>تسجيل عميل جديد</span>
+                </button>
+                <button onclick="openBulkWhatsAppModal('customers')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="إرسال رسالة واتساب جماعية لجميع العملاء أو المحددين">
+                  <i class="fa-brands fa-whatsapp text-sm"></i>
+                  <span>إرسال واتساب جماعي</span>
                 </button>
                 <button onclick="openBatchStatusModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="تعديل أو إعادة ضبط حالات الركاب دفعة واحدة">
                   <i class="fa-solid fa-arrows-rotate text-teal-400"></i>
                   <span>تعديل الحالات دفعة واحدة</span>
                 </button>
-                <button onclick="exportCurrentFilteredExcel()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
+                <button onclick="exportCurrentFilteredExcel()" class="px-3 py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
                   <i class="fa-solid fa-file-excel"></i>
                   <span>تصدير إكسل</span>
                 </button>
@@ -545,6 +549,9 @@
               <table class="w-full text-right custom-table">
                 <thead>
                   <tr>
+                    <th class="w-10 text-center no-print">
+                      <input type="checkbox" id="cust-select-all-check" onchange="toggleSelectAllCustomers(this.checked)" title="تحديد / إلغاء تحديد الكل" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                    </th>
                     <th>م</th>
                     <th>اسم العميل</th>
                     <th>رقم الهوية</th>
@@ -663,6 +670,12 @@
                     <option value="5">الصيغة 5</option>
                   </select>
                 </div>
+
+                <!-- Bulk WhatsApp Broadcast Button -->
+                <button onclick="openBulkWhatsAppModal('bus')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="إرسال رسالة واتساب جماعية لركاب الرحلة">
+                  <i class="fa-brands fa-whatsapp text-sm"></i>
+                  <span>إرسال واتساب جماعي</span>
+                </button>
 
                 <!-- Batch Status Update Button -->
                 <button onclick="openBatchStatusModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="تعديل أو إعادة ضبط حالات الركاب">
@@ -1062,8 +1075,8 @@
           
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 class="text-xl font-bold text-slate-800">إصدار بطاقات العملاء</h2>
-              <p class="text-xs text-slate-500 mt-0.5">توليد وطباعة بطاقات الرحلة دفعة واحدة جاهزة للطباعة الورقية أو PDF</p>
+              <h2 class="text-xl font-bold text-slate-800">إصدار وحفظ بطاقات العملاء</h2>
+              <p class="text-xs text-slate-500 mt-0.5">حفظ جميع بطاقات العملاء بضغطة زر واحدة (ملف PDF موحد أو صور PNG مضغوطة) أو طباعتها مباشرة</p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -1078,10 +1091,34 @@
                 <option value="dawadmi">عملاء الدوادمي فقط</option>
               </select>
 
+              <button id="btn-save-all-cards-pdf" onclick="downloadAllCardsPDF()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="حفظ جميع بطاقات الركاب في ملف PDF واحد بضغطة زر">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>حفظ جميع البطاقات (PDF)</span>
+              </button>
+
+              <button id="btn-save-all-cards-zip" onclick="downloadAllCardsZIP()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5" title="حفظ جميع بطاقات الركاب كصور PNG عالية الدقة في ملف واحد بضغطة زر">
+                <i class="fa-solid fa-images"></i>
+                <span>حفظ جميع البطاقات كصور (ZIP)</span>
+              </button>
+
               <button onclick="printBulkCards()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-1.5">
                 <i class="fa-solid fa-print"></i>
                 <span>طباعة جميع البطاقات</span>
               </button>
+            </div>
+          </div>
+
+          <!-- Bulk Cards Download Progress Banner -->
+          <div id="bulk-cards-progress-box" class="hidden bg-teal-50 border border-teal-200 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center justify-between text-xs font-bold text-teal-900 mb-2">
+              <span id="bulk-cards-progress-text" class="flex items-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin text-teal-600"></i>
+                جاري تجهيز وحفظ بطاقات العملاء...
+              </span>
+              <span id="bulk-cards-progress-pct" class="font-mono">0%</span>
+            </div>
+            <div class="w-full bg-teal-100 h-2.5 rounded-full overflow-hidden">
+              <div id="bulk-cards-progress-bar" class="bg-teal-600 h-full rounded-full transition-all duration-200" style="width: 0%"></div>
             </div>
           </div>
 
@@ -1653,16 +1690,62 @@
             class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">التاريخ الهجري <span class="text-red-500">*</span></label>
-            <input type="text" id="trip-hijri-input" required placeholder="21 محرم 1448هـ"
-              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block font-bold text-slate-800">تاريخ الرحلة (التاريخ العربي) <span class="text-red-500">*</span></label>
+            <button type="button" onclick="setTodayArabicTripDate()" class="text-[11px] font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+              <i class="fa-solid fa-calendar-check"></i>
+              <span>تاريخ اليوم بالعربي</span>
+            </button>
           </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">التاريخ الميلادي (اختياري)</label>
-            <input type="date" id="trip-gregorian-input"
-              class="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:bg-white focus:outline-none">
+
+          <!-- Quick Arabic Date Pickers (Day / Arabic Month / Year) -->
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <span class="block text-[10px] font-bold text-slate-500 mb-1">اليوم</span>
+              <select id="trip-ar-day" onchange="syncArabicDateSelectorsToInput()" class="w-full p-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+              </select>
+            </div>
+            <div>
+              <span class="block text-[10px] font-bold text-slate-500 mb-1">الشهر العربي</span>
+              <select id="trip-ar-month" onchange="syncArabicDateSelectorsToInput()" class="w-full p-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="محرم">محرم</option>
+                <option value="صفر">صفر</option>
+                <option value="ربيع الأول">ربيع الأول</option>
+                <option value="ربيع الآخر">ربيع الآخر</option>
+                <option value="جمادى الأولى">جمادى الأولى</option>
+                <option value="جمادى الآخرة">جمادى الآخرة</option>
+                <option value="رجب">رجب</option>
+                <option value="شعبان">شعبان</option>
+                <option value="رمضان">رمضان</option>
+                <option value="شوال">شوال</option>
+                <option value="ذو القعدة">ذو القعدة</option>
+                <option value="ذو الحجة">ذو الحجة</option>
+              </select>
+            </div>
+            <div>
+              <span class="block text-[10px] font-bold text-slate-500 mb-1">السنة</span>
+              <select id="trip-ar-year" onchange="syncArabicDateSelectorsToInput()" class="w-full p-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="1446هـ">1446هـ</option>
+                <option value="1447هـ">1447هـ</option>
+                <option value="1448هـ" selected>1448هـ</option>
+                <option value="1449هـ">1449هـ</option>
+                <option value="1450هـ">1450هـ</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">نص التاريخ العربي (يُكتب تلقائياً أو عدّله كما تشاء):</label>
+              <input type="text" id="trip-hijri-input" required placeholder="مثال: 21 محرم 1448هـ"
+                class="w-full p-2.5 text-sm font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">أو اختر من التقويم ليُكتب بالعربي تلقائياً:</label>
+              <input type="date" id="trip-gregorian-input" onchange="onTripGregorianDateChange(this.value)"
+                class="w-full p-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            </div>
           </div>
         </div>
 
@@ -1996,10 +2079,149 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: BULK WHATSAPP BROADCAST (إرسال واتساب جماعي) ==================== -->
+  <div id="bulk-whatsapp-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto fade-in">
+      <div class="p-5 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white flex items-center justify-between">
+        <div>
+          <h3 class="text-base sm:text-lg font-black flex items-center gap-2">
+            <i class="fa-brands fa-whatsapp text-xl"></i>
+            <span>الإرسال الجماعي لرسائل الواتساب (تحديد الكل وإرسال متتابع)</span>
+          </h3>
+          <p class="text-[11px] text-emerald-100 mt-0.5">اختر الصيغة وحدد جميع العملاء لإرسال رسائلهم المخصصة بأسمائهم ومقاعدهم دفعة واحدة بالتتابع</p>
+        </div>
+        <button onclick="closeBulkWhatsAppModal()" class="text-emerald-100 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="p-5 sm:p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
+        
+        <!-- Row 1: Filters (Trip, Pickup, Status) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">الرحلة المستهدفة:</label>
+            <select id="bulk-wa-trip-select" onchange="onBulkWaFilterChange()" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold text-navy-900 focus:ring-2 focus:ring-emerald-500">
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">نقطة الصعود:</label>
+            <select id="bulk-wa-pickup-select" onchange="onBulkWaFilterChange()" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500">
+              <option value="الكل">الكل (شقراء والدوادمي)</option>
+              <option value="شقراء">ركاب شقراء فقط</option>
+              <option value="الدوادمي">ركاب الدوادمي فقط</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">حالة الركاب:</label>
+            <select id="bulk-wa-status-select" onchange="onBulkWaFilterChange()" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500">
+              <option value="الكل">جميع الحالات</option>
+              <option value="مؤكد">المؤكدين فقط</option>
+              <option value="مسجل">المسجلين فقط</option>
+              <option value="عدم الحضور">عدم الحضور فقط</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 2: Formula Selector (1 to 5) & Template Preview -->
+        <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label class="font-black text-emerald-950 flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles text-emerald-600"></i>
+              <span>اختر صيغة الرسالة الجماعية (يتم تعويض اسم ومقعد كل عميل تلقائياً):</span>
+            </label>
+          </div>
+
+          <div id="bulk-wa-formula-buttons" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-bold text-slate-600">نص القالب المختار (يمكنك التعديل عليه هنا قبل الإرسال الجماعي):</span>
+              <span id="bulk-wa-sample-preview-hint" class="text-[11px] text-emerald-700 font-bold"></span>
+            </div>
+            <textarea id="bulk-wa-template-text" rows="4" oninput="updateBulkWaSampleHint()" class="w-full p-3 text-xs bg-white border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium leading-relaxed"></textarea>
+          </div>
+        </div>
+
+        <!-- Row 3: Recipients Selection List with Select All -->
+        <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+          <div class="p-3 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-2 cursor-pointer font-black text-slate-800">
+                <input type="checkbox" id="bulk-wa-select-all" checked onchange="toggleBulkWaSelectAll(this.checked)" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500">
+                <span>تحديد الكل</span>
+              </label>
+              <span id="bulk-wa-selected-badge" class="bg-emerald-600 text-white px-2.5 py-0.5 rounded-full text-[11px] font-bold">محدد: 0 عميل</span>
+              <span id="bulk-wa-sent-badge" class="bg-teal-100 text-teal-900 px-2.5 py-0.5 rounded-full text-[11px] font-bold hidden">تم الإرسال: 0</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="copyAllSelectedWaPhones()" class="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-700 flex items-center gap-1 transition" title="نسخ أرقام جميع العملاء المحددين">
+                <i class="fa-solid fa-copy text-emerald-600"></i>
+                <span>نسخ أرقام المحددين</span>
+              </button>
+              <button type="button" onclick="resetBulkWaSentStatus()" class="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-600 flex items-center gap-1 transition">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>إعادة تصفير الإرسال</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Sending Queue Banner (shown when sending is in progress) -->
+          <div id="bulk-wa-queue-banner" class="hidden p-3.5 bg-emerald-900 text-white flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-lg">
+                <i class="fa-brands fa-whatsapp text-emerald-300 animate-pulse"></i>
+              </div>
+              <div>
+                <div id="bulk-wa-queue-status" class="font-black text-xs sm:text-sm">جاري الإرسال للعميل (1 من 38): ...</div>
+                <div class="text-[11px] text-emerald-200">تُفتح المحادثة جاهزة بالرسالة؛ اضغط إرسال في واتساب ثم اضغط (إرسال للتالي) أو انتظر التبديل التلقائي</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" onclick="sendNextInBulkWaQueue()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs shadow transition flex items-center gap-1.5">
+                <span>إرسال للتالي الآن</span>
+                <i class="fa-solid fa-forward-step"></i>
+              </button>
+              <button type="button" onclick="stopBulkWaQueue()" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition">
+                إيقاف
+              </button>
+            </div>
+          </div>
+
+          <div id="bulk-wa-recipients-list" class="max-h-56 overflow-y-auto divide-y divide-slate-100">
+          </div>
+        </div>
+
+        <!-- Row 4: Auto-Send Interval & Start Action -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100">
+          <div class="flex items-center gap-2 text-xs text-slate-600 font-bold">
+            <span>طريقة الإرسال الجماعي:</span>
+            <select id="bulk-wa-mode-select" class="p-1.5 bg-slate-100 border border-slate-300 rounded-lg text-xs font-bold text-slate-800">
+              <option value="auto_4">تلقائي متتابع (كل 4 ثوانٍ ينتقل للعميل التالي)</option>
+              <option value="auto_6">تلقائي متتابع (كل 6 ثوانٍ ينتقل للعميل التالي)</option>
+              <option value="manual">يدوي سريع بضغطة زر (إرسال للتالي ⏭️)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button type="button" onclick="closeBulkWhatsAppModal()" class="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold">إغلاق</button>
+            <button type="button" id="btn-start-bulk-wa" onclick="startBulkWhatsAppQueue()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-base"></i>
+              <span>بدء الإرسال الجماعي للمحددين الآن</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261106_v12_excel_import_fix"></script>
+  <script src="/static/app.js?v=20261106_v13_bulk_wa_cards_ardate"></script>
 </body>
 </html>
