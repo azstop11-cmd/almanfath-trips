@@ -176,7 +176,7 @@ class ImportCommitRequest(BaseModel):
     trip_id: int
     rows: List[Dict[str, Any]]
     column_mapping: Dict[str, str]
-    skip_duplicates: bool = True
+    skip_duplicates: bool = False
 
 # ----------------- Auth API ----------------- #
 
@@ -648,6 +648,81 @@ async def batch_update_status(req: BatchStatusUpdateRequest, conn: sqlite3.Conne
 
 # ----------------- Excel / CSV Import API ----------------- #
 
+EXCEL_ARABIC_DIGITS_MAP = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+def format_excel_cell(val: Any) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, bool):
+        return ""
+    if isinstance(val, int):
+        return str(val)
+    if isinstance(val, float):
+        if val.is_integer():
+            return str(int(val))
+        return str(val)
+    s = str(val)
+    # Remove invisible formatting characters (RTL/LTR marks, zero-width spaces, BOM, non-breaking spaces)
+    for ch in ("\u200b", "\u200c", "\u200d", "\u200e", "\u200f", "\ufeff", "\u202a", "\u202b", "\u202c"):
+        s = s.replace(ch, "")
+    s = s.replace("\xa0", " ")
+    # Collapse multiple spaces/newlines into single space
+    s = re.sub(r"\s+", " ", s).strip()
+    # Handle strings that look like float integers e.g. "551234567.0"
+    if re.match(r"^\d+\.0+$", s):
+        s = s.split(".")[0]
+    return s
+
+def normalize_arabic_name(name: str) -> str:
+    s = format_excel_cell(name)
+    s = re.sub(r"[أإآ]", "ا", s)
+    s = s.replace("ة", "ه").replace("ى", "ي")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+HEADER_KEYWORDS = [
+    "اسم", "الاسم", "العميل", "الراكب", "المعتمر", "الحاج", "المسافر", "الرباعي", "الثلاثي",
+    "هوية", "الهوية", "سجل", "اقامة", "إقامة", "جواز",
+    "جوال", "الجوال", "هاتف", "الهاتف", "تواصل", "الاتصال", "رقم",
+    "صعود", "الصعود", "نقطة", "الموقع", "المدينة", "الفرع", "فرع",
+    "مقعد", "المقعد", "كرسي",
+    "فندق", "الفندق", "غرفة", "الغرفة", "تسكين",
+    "حالة", "الحالة", "تذكرة", "التذكرة", "سعر", "مبلغ", "متبقي", "ملاحظة", "ملاحظات",
+    "name", "passenger", "customer", "phone", "mobile", "id", "national", "seat", "pickup", "hotel", "room", "status", "notes", "price"
+]
+
+SUMMARY_OR_HEADER_WORDS = {
+    "الاسم", "اسم العميل", "اسم الراكب", "العميل", "الراكب", "اسم المعتمر", "الاسم الكامل", "الاسم الرباعي",
+    "المجموع", "الإجمالي", "الاجمالي", "اجمالي", "إجمالي", "مجموع", "عدد الركاب", "التوقيع", "ملاحظات", "name", "full name", "total"
+}
+
+def _is_likely_header_row(row_cells: List[str]) -> bool:
+    non_empty = [c for c in row_cells if c]
+    if not non_empty:
+        return False
+    keyword_hits = 0
+    for c in non_empty:
+        c_low = c.lower()
+        # A header cell is usually short (< 35 chars) and contains a header keyword
+        if len(c_low) < 40 and any(k in c_low for k in HEADER_KEYWORDS):
+            keyword_hits += 1
+    return keyword_hits >= 1
+
+def _make_unique_headers(raw_headers: List[str]) -> List[str]:
+    headers = []
+    seen = {}
+    for i, h in enumerate(raw_headers):
+        clean_h = format_excel_cell(h)
+        if not clean_h:
+            clean_h = f"عمود_{i+1}"
+        if clean_h in seen:
+            seen[clean_h] += 1
+            clean_h = f"{clean_h} ({seen[clean_h]})"
+        else:
+            seen[clean_h] = 1
+        headers.append(clean_h)
+    return headers
+
 @app.post("/api/import/preview")
 async def preview_import_file(file: UploadFile = File(...)):
     filename = file.filename.lower()
@@ -658,30 +733,20 @@ async def preview_import_file(file: UploadFile = File(...)):
 
     if filename.endswith(".xlsx") or filename.endswith(".xls"):
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-        sheet = wb.active
-        all_rows = list(sheet.iter_rows(values_only=True))
+        # Pick the sheet with the most non-empty rows (in case active sheet is empty or not the main one)
+        best_sheet_rows = []
+        for sheet in wb.worksheets:
+            s_rows = []
+            for r in sheet.iter_rows(values_only=True):
+                formatted_r = [format_excel_cell(cell) for cell in r]
+                if any(formatted_r):
+                    s_rows.append(formatted_r)
+            if len(s_rows) > len(best_sheet_rows):
+                best_sheet_rows = s_rows
+
+        all_rows = best_sheet_rows
         if not all_rows:
             raise HTTPException(status_code=400, detail="الملف فارغ لا يحتوي على بيانات")
-        
-        header_idx = 0
-        for idx, r in enumerate(all_rows):
-            if any(cell is not None and str(cell).strip() != "" for cell in r):
-                header_idx = idx
-                break
-        
-        raw_headers = all_rows[header_idx]
-        headers = [str(h).strip() if h is not None else f"عمود_{i+1}" for i, h in enumerate(raw_headers)]
-
-        for r in all_rows[header_idx + 1:]:
-            if not any(cell is not None and str(cell).strip() != "" for cell in r):
-                continue
-            row_dict = {}
-            for i, val in enumerate(r):
-                if i < len(headers):
-                    val_str = "" if val is None else str(val).strip()
-                    row_dict[headers[i]] = val_str
-            if any(row_dict.values()):
-                rows.append(row_dict)
 
     elif filename.endswith(".csv") or filename.endswith(".txt"):
         text = None
@@ -695,49 +760,128 @@ async def preview_import_file(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="تعذر قراءة ترميز ملف CSV")
 
         reader = csv.reader(io.StringIO(text))
-        all_rows = list(reader)
+        all_rows = []
+        for r in reader:
+            formatted_r = [format_excel_cell(cell) for cell in r]
+            if any(formatted_r):
+                all_rows.append(formatted_r)
         if not all_rows:
             raise HTTPException(status_code=400, detail="الملف فارغ")
-        
-        headers = [h.strip() for h in all_rows[0]]
-        for r in all_rows[1:]:
-            if not any(cell.strip() for cell in r):
-                continue
-            row_dict = {headers[i]: r[i].strip() for i in range(min(len(headers), len(r)))}
-            rows.append(row_dict)
     else:
         raise HTTPException(status_code=400, detail="صيغة الملف غير مدعومة. يرجى رفع ملف XLSX أو XLS أو CSV")
+
+    # Find max columns across all rows
+    max_cols = max(len(r) for r in all_rows)
+    padded_rows = [r + [""] * (max_cols - len(r)) for r in all_rows]
+
+    # Smart header detection: look in first 10 rows for a real table header row
+    header_idx = None
+    for idx in range(min(10, len(padded_rows))):
+        r = padded_rows[idx]
+        non_empty = [c for c in r if c]
+        # Skip single-cell title rows (e.g. "كشف ركاب رحلة مكة") when subsequent rows have multiple columns
+        if len(non_empty) == 1 and max_cols >= 2 and idx + 1 < len(padded_rows):
+            if not _is_likely_header_row(r):
+                continue
+        if _is_likely_header_row(r):
+            header_idx = idx
+            break
+
+    if header_idx is not None:
+        headers = _make_unique_headers(padded_rows[header_idx])
+        data_rows = padded_rows[header_idx + 1:]
+    else:
+        # No header keywords found! Check if row 0 is a single-cell title or actual passenger data
+        start_idx = 0
+        while start_idx < len(padded_rows) and sum(1 for c in padded_rows[start_idx] if c) == 1 and max_cols >= 2:
+            # Check if this single cell looks like a title (contains رحلة / كشف / بسم الله)
+            first_cell = next(c for c in padded_rows[start_idx] if c)
+            if any(w in first_cell for w in ["كشف", "رحلة", "بيان", "قائمة", "بسم الله", "فرع"]):
+                start_idx += 1
+            else:
+                break
+        # Synthesize column headers so we DO NOT lose passenger #1 as a header!
+        headers = [f"عمود_{i+1}" for i in range(max_cols)]
+        data_rows = padded_rows[start_idx:]
+
+    for r in data_rows:
+        if not any(r):
+            continue
+        # Skip repeated header rows inside the sheet (e.g., page breaks in Excel)
+        non_empty_vals = [c for c in r if c]
+        if len(non_empty_vals) >= 2 and all(c in headers or c.lower() in SUMMARY_OR_HEADER_WORDS for c in non_empty_vals):
+            continue
+        row_dict = {headers[i]: r[i] for i in range(len(headers))}
+        if any(row_dict.values()):
+            rows.append(row_dict)
 
     mapping_suggestions = {}
     for col in headers:
         c_low = col.lower()
-        if any(k in c_low for k in ["اسم", "الاسم", "العميل", "الراكب", "name", "passenger"]):
-            mapping_suggestions["full_name"] = col
-        elif any(k in c_low for k in ["هوية", "الهوية", "سجل", "id", "national"]):
-            mapping_suggestions["national_id"] = col
-        elif any(k in c_low for k in ["جوال", "الجوال", "هاتف", "phone", "mobile", "رقم الاتصال"]):
-            mapping_suggestions["phone"] = col
+        # Check specific columns BEFORE generic "اسم" so "اسم الفندق" or "اسم المشرف" never overwrites full_name
+        if any(k in c_low for k in ["فندق", "الفندق", "hotel"]):
+            mapping_suggestions.setdefault("hotel_name", col)
+        elif any(k in c_low for k in ["غرفة", "الغرفة", "تسكين", "room"]):
+            mapping_suggestions.setdefault("room_number", col)
         elif any(k in c_low for k in ["صعود", "الصعود", "نقطة", "الموقع", "المدينة", "pickup", "location", "branch", "فرع"]):
-            mapping_suggestions["pickup_point"] = col
-        elif any(k in c_low for k in ["مقعد", "المقعد", "seat", "chair"]):
-            mapping_suggestions["seat_number"] = col
-        elif any(k in c_low for k in ["فندق", "الفندق", "hotel"]):
-            mapping_suggestions["hotel_name"] = col
-        elif any(k in c_low for k in ["غرفة", "الغرفة", "room"]):
-            mapping_suggestions["room_number"] = col
+            mapping_suggestions.setdefault("pickup_point", col)
+        elif any(k in c_low for k in ["مقعد", "المقعد", "كرسي", "seat", "chair"]):
+            mapping_suggestions.setdefault("seat_number", col)
+        elif any(k in c_low for k in ["هوية", "الهوية", "سجل", "اقامة", "إقامة", "جواز", "national"]):
+            mapping_suggestions.setdefault("national_id", col)
+        elif any(k in c_low for k in ["جوال", "الجوال", "هاتف", "الهاتف", "تواصل", "phone", "mobile", "رقم الاتصال"]):
+            mapping_suggestions.setdefault("phone", col)
         elif any(k in c_low for k in ["حالة", "الحالة", "status"]):
-            mapping_suggestions["status"] = col
+            mapping_suggestions.setdefault("status", col)
         elif any(k in c_low for k in ["تذكرة", "التذكرة", "سعر", "قيمة", "مبلغ", "المتبقي", "باقي", "متبقي", "price", "ticket", "remaining", "balance"]):
-            mapping_suggestions["ticket_price"] = col
+            mapping_suggestions.setdefault("ticket_price", col)
         elif any(k in c_low for k in ["ملاحظة", "ملاحظات", "note", "notes"]):
-            mapping_suggestions["notes"] = col
+            mapping_suggestions.setdefault("notes", col)
+        elif any(k in c_low for k in ["اسم", "الاسم", "العميل", "الراكب", "المعتمر", "الحاج", "المسافر", "name", "passenger", "customer"]):
+            if not any(excl in c_low for excl in ["فندق", "رحلة", "مشرف", "سائق", "باص", "حافلة", "فرع", "نقطة"]):
+                mapping_suggestions.setdefault("full_name", col)
+
+    # Fallback heuristic: if full_name or phone wasn't detected from header names, inspect sample data values
+    if rows:
+        sample = rows[:min(15, len(rows))]
+        if "full_name" not in mapping_suggestions:
+            best_name_col = None
+            best_name_score = 0
+            for col in headers:
+                if col in mapping_suggestions.values():
+                    continue
+                score = 0
+                for r in sample:
+                    val = r.get(col, "")
+                    # Looks like a person name: contains letters, at least 3 chars, not purely digits
+                    if val and len(val) >= 3 and not val.translate(EXCEL_ARABIC_DIGITS_MAP).isdigit():
+                        if re.search(r"[\u0600-\u06FFa-zA-Z]", val):
+                            score += 2 if " " in val else 1
+                if score > best_name_score:
+                    best_name_score = score
+                    best_name_col = col
+            if best_name_col:
+                mapping_suggestions["full_name"] = best_name_col
+
+        if "phone" not in mapping_suggestions:
+            for col in headers:
+                if col in mapping_suggestions.values():
+                    continue
+                phone_hits = 0
+                for r in sample:
+                    val_digits = re.sub(r"[^\d]", "", r.get(col, "").translate(EXCEL_ARABIC_DIGITS_MAP))
+                    if len(val_digits) in (9, 10, 12) and (val_digits.startswith("05") or val_digits.startswith("5") or val_digits.startswith("9665")):
+                        phone_hits += 1
+                if phone_hits >= max(1, len(sample) // 3):
+                    mapping_suggestions["phone"] = col
+                    break
 
     return {
         "success": True,
         "total_rows": len(rows),
         "headers": headers,
         "mapping_suggestions": mapping_suggestions,
-        "sample_rows": rows[:10],
+        "sample_rows": rows,
         "all_rows": rows
     }
 
@@ -752,44 +896,88 @@ async def commit_import(req: ImportCommitRequest, conn: sqlite3.Connection = Dep
     cursor.execute("SELECT COUNT(*) FROM customers")
     total_cust = cursor.fetchone()[0]
 
-    cursor.execute("SELECT phone, national_id FROM customers WHERE trip_id = ?", (req.trip_id,))
+    cursor.execute("SELECT full_name, phone, national_id FROM customers WHERE trip_id = ?", (req.trip_id,))
     existing_records = cursor.fetchall()
-    existing_phones = {r["phone"].strip() for r in existing_records if r["phone"]}
-    existing_ids = {r["national_id"].strip() for r in existing_records if r["national_id"]}
+    # Track exact (normalized_name, phone) and (normalized_name, national_id) pairs so family members sharing a phone are NEVER skipped
+    existing_name_Check = set()
+    for r in existing_records:
+        n_norm = normalize_arabic_name(r["full_name"] or "")
+        p_clean = (r["phone"] or "").strip()
+        id_clean = (r["national_id"] or "").strip()
+        if n_norm:
+            existing_name_Check.add((n_norm, p_clean, id_clean))
 
     cursor.execute("SELECT MAX(CAST(seat_number AS INTEGER)) FROM customers WHERE trip_id = ?", (req.trip_id,))
     max_seat = cursor.fetchone()[0] or 0
 
     inserted_count = 0
     skipped_count = 0
+    skipped_details = []
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     col_map = req.column_mapping
+    mapped_cols_set = {v for v in col_map.values() if v}
 
-    for row in req.rows:
-        full_name = str(row.get(col_map.get("full_name", ""), "")).strip()
+    for row_idx, row in enumerate(req.rows, start=1):
+        full_name = format_excel_cell(row.get(col_map.get("full_name", ""), ""))
+
+        # Fallback: if full_name is empty in the mapped column (e.g. merged cell or shifted column in Excel),
+        # check if there is another unmapped column in this row that clearly holds a person's name
+        if not full_name:
+            for k, v in row.items():
+                if k not in mapped_cols_set:
+                    cand = format_excel_cell(v)
+                    cand_digits = cand.translate(EXCEL_ARABIC_DIGITS_MAP)
+                    if cand and len(cand) >= 3 and not cand_digits.isdigit() and re.search(r"[\u0600-\u06FFa-zA-Z]", cand):
+                        if cand.lower() not in SUMMARY_OR_HEADER_WORDS:
+                            full_name = cand
+                            break
+
         if not full_name:
             continue
 
-        phone = str(row.get(col_map.get("phone", ""), "")).strip()
-        phone_clean = re.sub(r"[^\d]", "", phone)
-        if phone_clean.startswith("966"):
-            phone_clean = "0" + phone_clean[3:]
-        elif not phone_clean.startswith("0") and len(phone_clean) == 9:
-            phone_clean = "0" + phone_clean
+        # Ignore repeated header rows or footer summary rows ("الإجمالي", "المجموع", "الاسم")
+        if full_name.lower() in SUMMARY_OR_HEADER_WORDS:
+            continue
+        # Ignore rows where full_name is purely a serial number (e.g. "1", "2")
+        if full_name.translate(EXCEL_ARABIC_DIGITS_MAP).isdigit():
+            continue
 
-        national_id = str(row.get(col_map.get("national_id", ""), "")).strip()
-        national_id = re.sub(r"[^\d]", "", national_id)
+        phone_raw = format_excel_cell(row.get(col_map.get("phone", ""), "")).translate(EXCEL_ARABIC_DIGITS_MAP)
+        phone_clean = re.sub(r"[^\d]", "", phone_raw)
+        if phone_clean.startswith("00966"):
+            phone_clean = "0" + phone_clean[5:]
+        elif phone_clean.startswith("966") and len(phone_clean) >= 11:
+            phone_clean = "0" + phone_clean[3:]
+        elif not phone_clean.startswith("0") and len(phone_clean) == 9 and phone_clean.startswith("5"):
+            phone_clean = "0" + phone_clean
+        # Ignore placeholder phones like "0" or "00"
+        if len(phone_clean) < 5:
+            phone_clean = ""
+
+        id_raw = format_excel_cell(row.get(col_map.get("national_id", ""), "")).translate(EXCEL_ARABIC_DIGITS_MAP)
+        national_id = re.sub(r"[^\d]", "", id_raw)
+        # Ignore placeholder IDs like "0", "0000", "1"
+        if len(national_id) < 5 or set(national_id) == {"0"}:
+            national_id = ""
+
+        norm_name = normalize_arabic_name(full_name)
 
         if req.skip_duplicates:
-            if phone_clean and phone_clean in existing_phones:
+            # Only skip if BOTH the normalized name AND (phone or national_id) match an existing passenger!
+            # This guarantees family members sharing a phone number are NEVER skipped.
+            is_dup = False
+            for ex_name, ex_phone, ex_id in existing_name_Check:
+                if ex_name == norm_name:
+                    if (phone_clean and phone_clean == ex_phone) or (national_id and national_id == ex_id) or (not phone_clean and not national_id):
+                        is_dup = True
+                        break
+            if is_dup:
                 skipped_count += 1
-                continue
-            if national_id and national_id in existing_ids:
-                skipped_count += 1
+                skipped_details.append(f"صف {row_idx}: {full_name} (مكرر)")
                 continue
 
-        pickup_raw = str(row.get(col_map.get("pickup_point", ""), "")).strip()
+        pickup_raw = format_excel_cell(row.get(col_map.get("pickup_point", ""), ""))
         if "دوادم" in pickup_raw or "daw" in pickup_raw.lower():
             pickup_point = "الدوادمي"
         elif "شقراء" in pickup_raw or "shaq" in pickup_raw.lower():
@@ -797,17 +985,20 @@ async def commit_import(req: ImportCommitRequest, conn: sqlite3.Connection = Dep
         else:
             pickup_point = pickup_raw if pickup_raw else "شقراء"
 
-        seat_raw = str(row.get(col_map.get("seat_number", ""), "")).strip()
-        if seat_raw and seat_raw.isdigit():
-            seat_number = seat_raw
+        seat_raw = format_excel_cell(row.get(col_map.get("seat_number", ""), "")).translate(EXCEL_ARABIC_DIGITS_MAP)
+        seat_digits = re.sub(r"[^\d]", "", seat_raw)
+        if seat_digits and int(seat_digits) > 0:
+            seat_number = str(int(seat_digits))
+            if int(seat_digits) > max_seat:
+                max_seat = int(seat_digits)
         else:
             max_seat += 1
             seat_number = str(max_seat)
 
-        hotel = str(row.get(col_map.get("hotel_name", ""), "")).strip() or trip["hotel_name"] or ""
-        room = str(row.get(col_map.get("room_number", ""), "")).strip()
+        hotel = format_excel_cell(row.get(col_map.get("hotel_name", ""), "")) or trip["hotel_name"] or ""
+        room = format_excel_cell(row.get(col_map.get("room_number", ""), ""))
 
-        status_raw = str(row.get(col_map.get("status", ""), "")).strip()
+        status_raw = format_excel_cell(row.get(col_map.get("status", ""), ""))
         if "مؤكد" in status_raw:
             status = "مؤكد"
         elif "عدم" in status_raw or "غائب" in status_raw:
@@ -817,8 +1008,9 @@ async def commit_import(req: ImportCommitRequest, conn: sqlite3.Connection = Dep
         else:
             status = "مسجل"
 
-        notes = str(row.get(col_map.get("notes", ""), "")).strip()
-        ticket_price = str(row.get(col_map.get("ticket_price", ""), "")).strip() or "0"
+        notes = format_excel_cell(row.get(col_map.get("notes", ""), ""))
+        ticket_price_raw = format_excel_cell(row.get(col_map.get("ticket_price", ""), "")).translate(EXCEL_ARABIC_DIGITS_MAP)
+        ticket_price = ticket_price_raw if ticket_price_raw else "0"
 
         total_cust += 1
         trip_prefix = f"TRIP-{trip['id']:02d}"
@@ -833,21 +1025,21 @@ async def commit_import(req: ImportCommitRequest, conn: sqlite3.Connection = Dep
             trip["id"], cust_num, card_num, full_name, national_id, phone_clean,
             pickup_point, seat_number, hotel, room, ticket_price, status, notes, trip["hijri_date"], now_str
         ))
-        
-        if phone_clean:
-            existing_phones.add(phone_clean)
-        if national_id:
-            existing_ids.add(national_id)
-        
+
+        existing_name_Check.add((norm_name, phone_clean, national_id))
         inserted_count += 1
 
     conn.commit()
     await broadcast_change("customers", "import")
+    msg = f"تم استيراد {inserted_count} راكب بنجاح"
+    if skipped_count > 0:
+        msg += f" (تم تخطي {skipped_count} لتكرار نفس الاسم والجوال)"
     return {
         "success": True,
         "inserted_count": inserted_count,
         "skipped_count": skipped_count,
-        "message": f"تم استيراد {inserted_count} عميل بنجاح (تم تخطي {skipped_count} مكرر)"
+        "skipped_details": skipped_details,
+        "message": msg
     }
 
 # ----------------- VCF Contacts Export API ----------------- #

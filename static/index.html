@@ -793,7 +793,7 @@
                       <select id="map-full-name" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
                     </div>
                     <div>
-                      <label class="block font-bold text-slate-700 mb-1">رقم الجوال <span class="text-red-500">*</span></label>
+                      <label class="block font-bold text-slate-700 mb-1">رقم الجوال (اختياري)</label>
                       <select id="map-phone" class="w-full py-2 px-2.5 bg-white border border-slate-300 rounded-lg"></select>
                     </div>
                     <div>
@@ -816,17 +816,17 @@
 
                   <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
                     <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                      <input type="checkbox" id="skip-duplicates-check" checked class="rounded text-brand-600">
-                      <span>تخطي الركاب المكررين في نفس الرحلة (بناءً على الجوال أو الهوية)</span>
+                      <input type="checkbox" id="skip-duplicates-check" class="rounded text-brand-600">
+                      <span>تخطي التكرار المتطابق تماماً فقط (نفس الاسم + نفس الجوال معاً) — يُسمح دائماً بتكرار رقم الجوال لأفراد العائلة والمرافقين</span>
                     </label>
                   </div>
                 </div>
 
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                   <div class="p-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-                    <h4 class="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <h4 id="preview-table-title" class="text-xs font-bold text-slate-800 flex items-center gap-2">
                       <i class="fa-solid fa-table"></i>
-                      معاينة أولية للبيانات قبل الحفظ (أول 10 صفوف)
+                      معاينة كاملة لجميع البيانات المستخرجة من الملف قبل الحفظ
                     </h4>
                   </div>
                   <div class="overflow-x-auto max-h-72">
@@ -2000,6 +2000,6 @@
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261028_v11_auth_password"></script>
+  <script src="/static/app.js?v=20261106_v12_excel_import_fix"></script>
 </body>
 </html>

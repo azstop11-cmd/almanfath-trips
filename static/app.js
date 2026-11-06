@@ -2624,15 +2624,20 @@ async function handleExcelFileUpload(event) {
     state.importData.mapping = data.mapping_suggestions || {};
 
     populateMappingDropdowns(data.headers, data.mapping_suggestions);
-    renderImportPreviewTable(data.sample_rows, data.headers);
+    renderImportPreviewTable(data.all_rows || data.sample_rows, data.headers);
 
     document.getElementById('detected-rows-badge').textContent = `تم العثور على ${data.total_rows} سجل`;
+    const previewTitle = document.getElementById('preview-table-title');
+    if (previewTitle) {
+      previewTitle.innerHTML = `<i class="fa-solid fa-table"></i> معاينة كاملة لجميع البيانات المستخرجة من الملف قبل الحفظ (${data.total_rows} راكب)`;
+    }
     document.getElementById('mapping-and-preview-section').classList.remove('hidden');
     showToast(`تمت قراءة الملف بنجاح (${data.total_rows} راكب)`, 'success');
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
     if (indicator) indicator.classList.add('hidden');
+    if (event.target) event.target.value = '';
   }
 }
 
@@ -2661,12 +2666,12 @@ function renderImportPreviewTable(sampleRows, headers) {
   const tbody = document.getElementById('preview-table-body');
   if (!thead || !tbody) return;
 
-  thead.innerHTML = `<tr>${headers.map(h => `<th class="p-2 border">${h}</th>`).join('')}</tr>`;
+  thead.innerHTML = `<tr><th class="p-2 border bg-slate-200 text-center w-10">م</th>${headers.map(h => `<th class="p-2 border">${h}</th>`).join('')}</tr>`;
   tbody.innerHTML = '';
 
-  sampleRows.forEach(r => {
+  sampleRows.forEach((r, idx) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = headers.map(h => `<td class="p-2 border">${r[h] || ''}</td>`).join('');
+    tr.innerHTML = `<td class="p-2 border text-center font-bold text-slate-500 bg-slate-50">${idx + 1}</td>` + headers.map(h => `<td class="p-2 border">${r[h] || ''}</td>`).join('');
     tbody.appendChild(tr);
   });
 }
@@ -2687,12 +2692,12 @@ async function commitImportData() {
     hotel_name: document.getElementById('map-hotel-name')?.value || ''
   };
 
-  if (!mapping.full_name || !mapping.phone) {
-    showToast('يرجى مطابقة عمود الاسم ورقم الجوال على الأقل', 'error');
+  if (!mapping.full_name) {
+    showToast('يرجى تحديد عمود اسم العميل على الأقل', 'error');
     return;
   }
 
-  const skipDuplicates = document.getElementById('skip-duplicates-check')?.checked || true;
+  const skipDuplicates = Boolean(document.getElementById('skip-duplicates-check')?.checked);
 
   try {
     const res = await fetch(`${API_BASE}/import/commit`, {
