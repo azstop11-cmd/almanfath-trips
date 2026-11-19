@@ -361,14 +361,16 @@ function applySettingsToUI() {
     document.getElementById('set-whatsapp-template').value = s.whatsapp_template_1 || s.whatsapp_template || '';
   }
 
-  // Multi-formula WhatsApp settings (1 to 5)
+  // Multi-formula WhatsApp settings (1 to 7)
   const defaultFormula1 = "السلام عليكم ورحمة الله وبركاته، معك مشرف رحلة [{trip_name}] من المنفذ المثالي. نود الاطمئنان والتأكيد على موعد انطلاق الرحلة من نقطة {pickup_point}.";
   const formulaDefaults = [
     { idx: 1, title: 'الصيغة 1 (الرئيسية)', tpl: s.whatsapp_template_1 || s.whatsapp_template || defaultFormula1 },
     { idx: 2, title: 'الصيغة 2', tpl: s.whatsapp_template_2 || '' },
     { idx: 3, title: 'الصيغة 3', tpl: s.whatsapp_template_3 || '' },
     { idx: 4, title: 'الصيغة 4', tpl: s.whatsapp_template_4 || '' },
-    { idx: 5, title: 'الصيغة 5', tpl: s.whatsapp_template_5 || '' }
+    { idx: 5, title: 'الصيغة 5', tpl: s.whatsapp_template_5 || '' },
+    { idx: 6, title: 'الصيغة 6', tpl: s.whatsapp_template_6 || '' },
+    { idx: 7, title: 'الصيغة 7', tpl: s.whatsapp_template_7 || '' }
   ];
 
   formulaDefaults.forEach(f => {
@@ -402,7 +404,7 @@ function applySettingsToUI() {
 
 function switchSettingsWhatsAppTab(tabIdx) {
   const targetIdx = parseInt(tabIdx, 10) || 1;
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 7; i++) {
     const btn = document.getElementById(`wa-tab-btn-${i}`);
     const panel = document.getElementById(`wa-panel-${i}`);
     if (btn) {
@@ -446,7 +448,7 @@ function populateWhatsAppFormulaSelectors() {
     if (!el) return;
     const currentVal = el.value || s.whatsapp_active_template || '1';
     el.innerHTML = '';
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 7; i++) {
       const opt = document.createElement('option');
       opt.value = String(i);
       const title = s[`whatsapp_title_${i}`] || (i === 1 ? 'صيغة 1 (الأساسية / تأكيد الحجز)' : `صيغة ${i}`);
@@ -479,6 +481,10 @@ async function saveSettings(e) {
     whatsapp_template_4: document.getElementById('set-whatsapp-template-4')?.value || '',
     whatsapp_title_5: document.getElementById('set-whatsapp-title-5')?.value.trim() || 'صيغة 5',
     whatsapp_template_5: document.getElementById('set-whatsapp-template-5')?.value || '',
+    whatsapp_title_6: document.getElementById('set-whatsapp-title-6')?.value.trim() || 'صيغة 6',
+    whatsapp_template_6: document.getElementById('set-whatsapp-template-6')?.value || '',
+    whatsapp_title_7: document.getElementById('set-whatsapp-title-7')?.value.trim() || 'صيغة 7',
+    whatsapp_template_7: document.getElementById('set-whatsapp-template-7')?.value || '',
     whatsapp_template: tpl1
   };
 
@@ -4081,7 +4087,7 @@ function renderWhatsAppModalFormulaButtons() {
   const s = state.settings || {};
 
   container.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 7; i++) {
     const title = s[`whatsapp_title_${i}`] || (i === 1 ? 'صيغة 1 (الأساسية / تأكيد الحجز)' : `صيغة ${i}`);
     const tpl = s[`whatsapp_template_${i}`] || (i === 1 ? (s.whatsapp_template || '') : '');
     const isBlank = !tpl || !tpl.trim();
@@ -4228,7 +4234,7 @@ function renderBulkWaFormulaButtons() {
   const s = state.settings || {};
 
   container.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 7; i++) {
     const title = s[`whatsapp_title_${i}`] || (i === 1 ? 'الصيغة 1 (الرئيسية)' : `الصيغة ${i}`);
     const isSelected = i === bulkWaState.formulaIdx;
 

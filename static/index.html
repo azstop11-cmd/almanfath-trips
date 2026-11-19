@@ -668,6 +668,8 @@
                     <option value="3">الصيغة 3</option>
                     <option value="4">الصيغة 4</option>
                     <option value="5">الصيغة 5</option>
+                    <option value="6">الصيغة 6</option>
+                    <option value="7">الصيغة 7</option>
                   </select>
                 </div>
 
@@ -1246,15 +1248,15 @@
                 </div>
               </div>
 
-              <!-- Multi-Template WhatsApp System (5 Formulas) -->
+              <!-- Multi-Template WhatsApp System (7 Formulas) -->
               <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <div>
                     <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
                       <i class="fa-brands fa-whatsapp text-emerald-600 text-lg"></i>
-                      قوالب وصيغ رسائل الواتساب المتعددة (5 صيغ قابلة للتبديل)
+                      قوالب وصيغ رسائل الواتساب المتعددة (7 صيغ قابلة للتبديل)
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">يمكنك تجهيز حتى 5 صيغ مختلفة والتنقل بينها بكل سلاسة عند مراسلة الركاب</p>
+                    <p class="text-xs text-slate-500 mt-0.5">يمكنك تجهيز حتى 7 صيغ مختلفة والتنقل بينها بكل سلاسة عند مراسلة الركاب</p>
                   </div>
                   <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shrink-0">
                     <span class="text-xs font-bold text-slate-600">الصيغة النشطة:</span>
@@ -1264,12 +1266,14 @@
                       <option value="3">الصيغة 3</option>
                       <option value="4">الصيغة 4</option>
                       <option value="5">الصيغة 5</option>
+                      <option value="6">الصيغة 6</option>
+                      <option value="7">الصيغة 7</option>
                     </select>
                   </div>
                 </div>
 
-                <!-- Tabs navigation for 5 formulas -->
-                <div class="flex items-center gap-1.5 border-b border-slate-200 pb-2 mb-4 overflow-x-auto">
+                <!-- Tabs navigation for 7 formulas -->
+                <div class="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-2 mb-4">
                   <button type="button" onclick="switchSettingsWhatsAppTab('1')" id="wa-tab-btn-1" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-xs transition flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-white"></span>
                     <span id="wa-tab-title-badge-1">الصيغة 1 (الرئيسية)</span>
@@ -1289,6 +1293,14 @@
                   <button type="button" onclick="switchSettingsWhatsAppTab('5')" id="wa-tab-btn-5" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-slate-300"></span>
                     <span id="wa-tab-title-badge-5">الصيغة 5</span>
+                  </button>
+                  <button type="button" onclick="switchSettingsWhatsAppTab('6')" id="wa-tab-btn-6" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span id="wa-tab-title-badge-6">الصيغة 6</span>
+                  </button>
+                  <button type="button" onclick="switchSettingsWhatsAppTab('7')" id="wa-tab-btn-7" class="wa-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span id="wa-tab-title-badge-7">الصيغة 7</span>
                   </button>
                 </div>
 
@@ -1352,6 +1364,30 @@
                   <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 5:</label>
                     <textarea id="set-whatsapp-template-5" rows="3" placeholder="اكتب نص الصيغة الخامسة هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <!-- Formula 6 Panel -->
+                <div id="wa-panel-6" class="wa-template-panel space-y-3 hidden">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 6:</label>
+                    <input type="text" id="set-whatsapp-title-6" oninput="onSettingsWhatsAppTitleInput(6, this.value)" placeholder="اكتب عنواناً للصيغة السادسة..." class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 6:</label>
+                    <textarea id="set-whatsapp-template-6" rows="3" placeholder="اكتب نص الصيغة السادسة هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                  </div>
+                </div>
+
+                <!-- Formula 7 Panel -->
+                <div id="wa-panel-7" class="wa-template-panel space-y-3 hidden">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">تسمية / عنوان الصيغة 7:</label>
+                    <input type="text" id="set-whatsapp-title-7" oninput="onSettingsWhatsAppTitleInput(7, this.value)" placeholder="اكتب عنواناً للصيغة السابعة..." class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">نص رسالة الصيغة 7:</label>
+                    <textarea id="set-whatsapp-template-7" rows="3" placeholder="اكتب نص الصيغة السابعة هنا (أو اتركها فارغة لتملأها لاحقاً)..." class="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
                   </div>
                 </div>
 
@@ -2103,7 +2139,7 @@
             </label>
           </div>
 
-          <div id="bulk-wa-formula-buttons" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div id="bulk-wa-formula-buttons" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
           </div>
 
           <div>
@@ -2193,6 +2229,6 @@
   <div id="toast-container" class="no-print fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- App Script -->
-  <script src="/static/app.js?v=20261106_v14_trip_date_hm"></script>
+  <script src="/static/app.js?v=20261119_v15_wa_7_formulas"></script>
 </body>
 </html>
